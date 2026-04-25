@@ -1,0 +1,161 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: radial-gradient(circle at top left, #1e3a8a, #0f172a 40%, #020617 100%);
+  color: white;
+  text-align: center;
+}
+
+/* MAIN CONTAINER */
+
+.container {
+  max-width: 1200px;
+  margin: 10px auto;
+  padding: 20px;
+}
+
+/* TITLES */
+
+h1 {
+  font-size: 60px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+h2 {
+  margin-bottom: 15px;
+}
+
+p {
+  color: #94a3b8;
+  font-size: 20px;
+}
+
+/* INPUTS */
+
+input {
+  padding: 12px;
+  width: 220px;
+  border-radius: 10px;
+  border: 1px solid #334155;
+  margin: 8px;
+  background-color: #1e293b;
+  color: white;
+  outline: none;
+  transition: 0.3s;
+}
+
+input:focus {
+  border: 1px solid #38bdf8;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+}
+
+/* BUTTONS */
+
+button {
+  background: #2563eb !important;
+  color: white !important;
+  padding: 12px 22px !important;
+  border: none !important;
+  border-radius: 12px !important;
+  font-weight: bold !important;
+  cursor: pointer !important;
+  margin: 8px !important;
+  transition: 0.3s !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25) !important;
+}
+
+button:hover {
+  background: #1d4ed8 !important;
+  transform: translateY(-2px);
+}
+
+/* NAVBAR */
+
+.navbar {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* CARD BOX */
+
+.task-box {
+  background: white;
+  color: black;
+  width: 90%;
+  max-width: 550px;
+  margin: 25px auto;
+  padding: 25px;
+  border-radius: 18px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+}
+
+/* CARD TITLE */
+
+.task-box h2 {
+  color: #0f172a;
+  margin-bottom: 15px;
+}
+
+/* CARD TEXT */
+
+.task-box p {
+  color: black;
+  font-size: 18px;
+  margin: 8px 0;
+}
+
+/* DASHBOARD STATS */
+
+.stats-row {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin: 30px 0;
+}
+
+.stats-card {
+  background: white;
+  color: black;
+  padding: 20px;
+  border-radius: 15px;
+  min-width: 180px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.stats-card h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.stats-card p {
+  color: #0f172a;
+  font-size: 28px;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 768px) {
+  h1 {
+    font-size: 42px;
+  }
+
+  input {
+    width: 90%;
+  }
+
+  .task-box {
+    width: 95%;
+  }
+
+  .stats-card {
+    width: 90%;
+  }
+}
