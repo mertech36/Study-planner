@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-function Courses() {
+function Courses({ refreshDashboard }) {
   const [courseName, setCourseName] = useState("");
   const [semester, setSemester] = useState("");
   const [color, setColor] = useState("");
@@ -10,9 +10,14 @@ function Courses() {
     return saved ? JSON.parse(saved) : [];
   });
 
+  /* localStorage kaydet + dashboard yenile */
   useEffect(() => {
     localStorage.setItem("courses", JSON.stringify(courses));
-  }, [courses]);
+
+    if (refreshDashboard) {
+      refreshDashboard();
+    }
+  }, [courses, refreshDashboard]);
 
   const addCourse = () => {
     if (!courseName || !semester || !color) return;
@@ -86,8 +91,6 @@ function Courses() {
           >
             <strong>{course.name}</strong>
             <p>{course.semester}</p>
-
-            
 
             <button
               onClick={() => deleteCourse(course.id)}

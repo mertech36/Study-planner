@@ -4,6 +4,7 @@ import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
 import Courses from "./pages/Courses";
 import Exams from "./pages/Exams";
+import logo from "./assets/logo.png";
 
 function App() {
   const [page, setPage] = useState("dashboard");
@@ -78,8 +79,14 @@ function App() {
 
   return (
     <div>
-      {/* MENU */}
+      {/* NAVBAR */}
       <div className="navbar">
+
+        <div className="logo-box">
+          <img src={logo} alt="Study Planner Logo" className="logo" />
+          <span className="logo-text">Study Planner</span>
+        </div>
+
         <button onClick={() => setPage("dashboard")}>
           Dashboard
         </button>
@@ -95,6 +102,7 @@ function App() {
         <button onClick={() => setPage("exams")}>
           Exams
         </button>
+
       </div>
 
       {/* PAGE */}
