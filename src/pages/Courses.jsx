@@ -41,70 +41,79 @@ function Courses({ refreshDashboard }) {
   };
 
   return (
-    <div className="container">
-      <h1>Courses</h1>
-      <p>Add and manage your courses</p>
+    <div className="courses-bg">
+      <div className="container">
+        <h1>Courses</h1>
+        <p>Add and manage your courses</p>
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          addCourse();
-        }}
-      >
-        <input
-          type="text"
-          placeholder="Course Name"
-          value={courseName}
-          onChange={(e) => setCourseName(e.target.value)}
-        />
+        {/* FORM */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            addCourse();
+          }}
+        >
+          <input
+            type="text"
+            placeholder="Course Name"
+            value={courseName}
+            onChange={(e) => setCourseName(e.target.value)}
+          />
 
-        <input
-          type="text"
-          placeholder="Semester"
-          value={semester}
-          onChange={(e) => setSemester(e.target.value)}
-        />
+          <input
+            type="text"
+            placeholder="Semester"
+            value={semester}
+            onChange={(e) => setSemester(e.target.value)}
+          />
 
-        <input
-          type="text"
-          placeholder="Color (red, blue, green...)"
-          value={color}
-          onChange={(e) => setColor(e.target.value)}
-        />
+          <input
+            type="text"
+            placeholder="Color (red, blue, green...)"
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
+          />
 
-        <button type="submit">Add Course</button>
-      </form>
+          <button type="submit">Add Course</button>
+        </form>
 
-      <div className="task-box">
-        <h2>Course List</h2>
+        {/* COURSE LIST */}
+        <div className="task-box">
+          <h2>Course List</h2>
 
-        {courses.map((course) => (
-          <div
-            key={course.id}
-            style={{
-              backgroundColor: course.color,
-              color: "black",
-              padding: "15px",
-              margin: "10px 0",
-              borderRadius: "10px"
-            }}
-          >
-            <strong>{course.name}</strong>
-            <p>{course.semester}</p>
+          {courses.length === 0 ? (
+            <p>No courses added</p>
+          ) : (
+            courses.map((course) => (
+              <div
+                key={course.id}
+                style={{
+                  backgroundColor: course.color,
+                  color: "black",
+                  padding: "15px",
+                  margin: "10px 0",
+                  borderRadius: "10px",
+                  transition: "0.3s"
+                }}
+              >
+                <strong>{course.name}</strong>
+                <p>{course.semester}</p>
 
-            <button
-              onClick={() => deleteCourse(course.id)}
-              style={{
-                backgroundColor: "red",
-                color: "white",
-                padding: "6px 12px",
-                borderRadius: "6px"
-              }}
-            >
-              Delete
-            </button>
-          </div>
-        ))}
+                <button
+                  onClick={() => deleteCourse(course.id)}
+                  style={{
+                    backgroundColor: "#dc2626",
+                    color: "white",
+                    padding: "6px 12px",
+                    borderRadius: "6px"
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

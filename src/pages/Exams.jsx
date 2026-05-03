@@ -34,92 +34,84 @@ function Exams({ exams, setExams }) {
   };
 
   return (
-    <div className="container">
-      <h1>Exams</h1>
-      <p>Add and manage your exams</p>
+    <div className="exams-bg">
+      <div className="container">
+        <h1>Exams</h1>
+        <p>Add and manage your exams</p>
 
-      <input
-        type="text"
-        placeholder="Exam Title"
-        value={examTitle}
-        onChange={(e) =>
-          setExamTitle(e.target.value)
-        }
-        onKeyDown={(e) =>
-          e.key === "Enter" && addExam()
-        }
-      />
+        {/* INPUTS */}
+        <input
+          type="text"
+          placeholder="Exam Title"
+          value={examTitle}
+          onChange={(e) => setExamTitle(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && addExam()}
+        />
 
-      <input
-        type="text"
-        placeholder="Course"
-        value={course}
-        onChange={(e) => setCourse(e.target.value)}
-        onKeyDown={(e) =>
-          e.key === "Enter" && addExam()
-        }
-      />
+        <input
+          type="text"
+          placeholder="Course"
+          value={course}
+          onChange={(e) => setCourse(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && addExam()}
+        />
 
-      <input
-        type="date"
-        value={examDate}
-        onChange={(e) =>
-          setExamDate(e.target.value)
-        }
-        onKeyDown={(e) =>
-          e.key === "Enter" && addExam()
-        }
-      />
+        <input
+          type="date"
+          value={examDate}
+          onChange={(e) => setExamDate(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && addExam()}
+        />
 
-      <input
-        type="text"
-        placeholder="Notes"
-        value={notes}
-        onChange={(e) => setNotes(e.target.value)}
-        onKeyDown={(e) =>
-          e.key === "Enter" && addExam()
-        }
-      />
+        <input
+          type="text"
+          placeholder="Notes"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && addExam()}
+        />
 
-      <button onClick={addExam}>
-        Add Exam
-      </button>
+        <button onClick={addExam}>Add Exam</button>
 
-      <div className="task-box">
-        <h2>Exam List</h2>
+        {/* EXAM LIST */}
+        <div className="task-box">
+          <h2>Exam List</h2>
 
-        {exams.map((exam) => (
-          <div
-            key={exam.id}
-            style={{
-              margin: "10px 0",
-              padding: "15px",
-              borderRadius: "10px",
-              backgroundColor: "#eee",
-              color: "black"
-            }}
-          >
-            <p>
-              <strong>{exam.examTitle}</strong>
-            </p>
+          {exams.length === 0 ? (
+            <p>No exams added</p>
+          ) : (
+            exams.map((exam) => (
+              <div
+                key={exam.id}
+                style={{
+                  margin: "10px 0",
+                  padding: "15px",
+                  borderRadius: "10px",
+                  backgroundColor: "#f1f5f9",
+                  color: "black"
+                }}
+              >
+                <p>
+                  <strong>{exam.examTitle}</strong>
+                </p>
 
-            <p>Course: {exam.course}</p>
-            <p>Date: {exam.examDate}</p>
-            <p>Notes: {exam.notes}</p>
+                <p>Course: {exam.course}</p>
+                <p>Date: {exam.examDate}</p>
+                <p>Notes: {exam.notes}</p>
 
-            <button
-              onClick={() =>
-                deleteExam(exam.id)
-              }
-              style={{
-                backgroundColor: "red",
-                color: "white"
-              }}
-            >
-              Delete
-            </button>
-          </div>
-        ))}
+                <button
+                  onClick={() => deleteExam(exam.id)}
+                  style={{
+                    backgroundColor: "#dc2626",
+                    color: "white"
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

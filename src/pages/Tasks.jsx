@@ -56,142 +56,132 @@ function Tasks({ tasks, setTasks }) {
   });
 
   return (
-    <div className="container">
-      <h1>Tasks</h1>
-      <p>Add and manage your tasks</p>
+    <div className="tasks-bg">
+      <div className="container">
+        <h1>Tasks</h1>
+        <p>Add and manage your tasks</p>
 
-      <input
-        type="text"
-        placeholder="Task Title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        onKeyDown={(e) =>
-          e.key === "Enter" && addTask()
-        }
-      />
+        {/* INPUTS */}
+        <input
+          type="text"
+          placeholder="Task Title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && addTask()}
+        />
 
-      <input
-        type="text"
-        placeholder="Course"
-        value={course}
-        onChange={(e) => setCourse(e.target.value)}
-        onKeyDown={(e) =>
-          e.key === "Enter" && addTask()
-        }
-      />
+        <input
+          type="text"
+          placeholder="Course"
+          value={course}
+          onChange={(e) => setCourse(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && addTask()}
+        />
 
-      <input
-        type="date"
-        value={dueDate}
-        onChange={(e) => setDueDate(e.target.value)}
-        onKeyDown={(e) =>
-          e.key === "Enter" && addTask()
-        }
-      />
+        <input
+          type="date"
+          value={dueDate}
+          onChange={(e) => setDueDate(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && addTask()}
+        />
 
-      <input
-        type="text"
-        placeholder="Priority"
-        value={priority}
-        onChange={(e) => setPriority(e.target.value)}
-        onKeyDown={(e) =>
-          e.key === "Enter" && addTask()
-        }
-      />
+        <input
+          type="text"
+          placeholder="Priority"
+          value={priority}
+          onChange={(e) => setPriority(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && addTask()}
+        />
 
-      <input
-        type="text"
-        placeholder="Status"
-        value={status}
-        onChange={(e) => setStatus(e.target.value)}
-        onKeyDown={(e) =>
-          e.key === "Enter" && addTask()
-        }
-      />
+        <input
+          type="text"
+          placeholder="Status"
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && addTask()}
+        />
 
-      <button onClick={addTask}>
-        Add Task
-      </button>
+        <button onClick={addTask}>Add Task</button>
 
-      <div style={{ marginTop: "20px" }}>
-        <button onClick={() => setFilter("all")}>
-          All
-        </button>
+        {/* FILTER BUTTONS */}
+        <div style={{ marginTop: "20px" }}>
+          <button onClick={() => setFilter("all")}>
+            All
+          </button>
 
-        <button
-          onClick={() => setFilter("completed")}
-        >
-          Completed
-        </button>
+          <button onClick={() => setFilter("completed")}>
+            Completed
+          </button>
 
-        <button onClick={() => setFilter("pending")}>
-          Pending
-        </button>
-      </div>
+          <button onClick={() => setFilter("pending")}>
+            Pending
+          </button>
+        </div>
 
-      <div className="task-box">
-        <h2>Task List</h2>
+        {/* TASK LIST */}
+        <div className="task-box">
+          <h2>Task List</h2>
 
-        {filteredTasks.map((task) => (
-          <div
-            key={task.id}
-            style={{
-              margin: "10px 0",
-              padding: "15px",
-              borderRadius: "10px",
-              backgroundColor: task.completed
-                ? "#90ee90"
-                : "#eee",
-              color: "black"
-            }}
-          >
-            <p>
-              <strong
+          {filteredTasks.length === 0 ? (
+            <p>No tasks found</p>
+          ) : (
+            filteredTasks.map((task) => (
+              <div
+                key={task.id}
                 style={{
-                  textDecoration: task.completed
-                    ? "line-through"
-                    : "none"
+                  margin: "10px 0",
+                  padding: "15px",
+                  borderRadius: "10px",
+                  backgroundColor: task.completed
+                    ? "#dcfce7"
+                    : "#f1f5f9",
+                  color: "black",
+                  transition: "0.3s"
                 }}
               >
-                {task.title}
-              </strong>
-            </p>
+                <p>
+                  <strong
+                    style={{
+                      textDecoration: task.completed
+                        ? "line-through"
+                        : "none"
+                    }}
+                  >
+                    {task.title}
+                  </strong>
+                </p>
 
-            <p>Course: {task.course}</p>
-            <p>Due: {task.dueDate}</p>
-            <p>Priority: {task.priority}</p>
-            <p>Status: {task.status}</p>
+                <p>Course: {task.course}</p>
+                <p>Due: {task.dueDate}</p>
+                <p>Priority: {task.priority}</p>
+                <p>Status: {task.status}</p>
 
-            <div style={{ marginTop: "10px" }}>
-              <button
-                onClick={() =>
-                  toggleComplete(task.id)
-                }
-                style={{
-                  marginRight: "10px",
-                  backgroundColor: "green",
-                  color: "white"
-                }}
-              >
-                {task.completed
-                  ? "Undo"
-                  : "Complete"}
-              </button>
+                <div style={{ marginTop: "10px" }}>
+                  <button
+                    onClick={() => toggleComplete(task.id)}
+                    style={{
+                      marginRight: "10px",
+                      backgroundColor: "#16a34a",
+                      color: "white"
+                    }}
+                  >
+                    {task.completed ? "Undo" : "Complete"}
+                  </button>
 
-              <button
-                onClick={() =>
-                  deleteTask(task.id)
-                }
-                style={{
-                  backgroundColor: "red",
-                  color: "white"
-                }}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        ))}
+                  <button
+                    onClick={() => deleteTask(task.id)}
+                    style={{
+                      backgroundColor: "#dc2626",
+                      color: "white"
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
