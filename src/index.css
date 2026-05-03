@@ -1,4 +1,6 @@
-/* RESET */
+body {
+  background: transparent !important;
+}
 
 html,
 body,
