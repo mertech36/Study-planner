@@ -4,7 +4,7 @@ import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
 import Courses from "./pages/Courses";
 import Exams from "./pages/Exams";
-import logo from "./assets/logo.png";
+import logo from "./assets/icon.png";
 
 function App() {
   const [page, setPage] = useState("dashboard");
