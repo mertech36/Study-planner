@@ -4,7 +4,6 @@ import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
 import Courses from "./pages/Courses";
 import Exams from "./pages/Exams";
-import logo from "./assets/icon.png";
 
 function App() {
   const [page, setPage] = useState("dashboard");
@@ -83,7 +82,8 @@ function App() {
       <div className="navbar">
 
         <div className="logo-box">
-          <img src={logo} alt="Study Planner Logo" className="logo" />
+          {/* 🔥 PUBLIC LOGO */}
+          <img src="/icon.png" alt="Logo" className="logo" />
           <span className="logo-text">Study Planner</span>
         </div>
 
