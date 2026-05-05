@@ -15,7 +15,7 @@ function Dashboard({ tasks, exams, courses }) {
 
   return (
     <div className="dashboard-bg">
-      {/* 🔥 NAVBAR BOŞLUĞUNU KAPAT */}
+      {/*  NAVBAR BOŞLUĞUNU KAPAT */}
       <div className="container" style={{ marginTop: "-20px" }}>
         <h1>Dashboard</h1>
         <p>Welcome to your Study Planner</p>
