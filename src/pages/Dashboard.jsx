@@ -5,7 +5,16 @@ import {
   FiClipboard,
 } from "react-icons/fi";
 
-function Dashboard({ tasks, exams, courses }) {
+function Dashboard({
+  tasks,
+  exams,
+  courses,
+  setPage,
+  setTaskFilter,
+  darkMode,
+  setDarkMode,
+}) {
+
   const totalTasks = tasks.length;
 
   const completedTasks = tasks.filter(
@@ -16,173 +25,186 @@ function Dashboard({ tasks, exams, courses }) {
     (task) => !task.completed
   );
 
-  const upcomingExams = exams.length;
+  const stats = [
+    {
+      title: "Total Tasks",
+      value: totalTasks,
+      subtitle: "All created tasks",
+      icon: FiClipboard,
+      iconBg: "bg-blue-100",
+      iconColor: "text-blue-600",
+      action: () => {
+        setTaskFilter("all");
+        setPage("tasks");
+      },
+    },
 
-  const totalCourses = courses.length;
+    {
+      title: "Completed",
+      value: completedTasks,
+      subtitle: "Great progress",
+      subtitleColor: "text-green-500",
+      icon: FiCheckCircle,
+      iconBg: "bg-green-100",
+      iconColor: "text-green-600",
+      action: () => {
+        setTaskFilter("completed");
+        setPage("tasks");
+      },
+    },
+
+    {
+      title: "Upcoming Exams",
+      value: exams.length,
+      subtitle: "Stay prepared",
+      subtitleColor: "text-orange-500",
+      icon: FiCalendar,
+      iconBg: "bg-orange-100",
+      iconColor: "text-orange-600",
+      action: () => setPage("exams"),
+    },
+
+    {
+      title: "Courses",
+      value: courses.length,
+      subtitle: "Active subjects",
+      subtitleColor: "text-purple-500",
+      icon: FiBookOpen,
+      iconBg: "bg-purple-100",
+      iconColor: "text-purple-600",
+      action: () => setPage("courses"),
+    },
+  ];
+
+  const cardStyle = darkMode
+    ? "bg-slate-800 border-slate-700"
+    : "bg-white border-slate-100";
+
+  const textPrimary = darkMode
+    ? "text-white"
+    : "text-slate-900";
+
+  const textSecondary = darkMode
+    ? "text-slate-400"
+    : "text-slate-500";
 
   return (
     <div className="space-y-8">
 
       {/* HEADER */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between">
 
         <div>
-          <h1 className="text-5xl font-extrabold text-slate-900 tracking-tight">
+
+          <h1
+            className={`text-5xl font-extrabold tracking-tight ${textPrimary}`}
+          >
             Welcome back 👋
           </h1>
 
-          <p className="text-slate-500 mt-3 text-lg">
+          <p className={`mt-3 text-lg ${textSecondary}`}>
             {new Date().toDateString()}
           </p>
+
         </div>
+
+        {/* DARK MODE */}
+        <button
+          onClick={() => setDarkMode(!darkMode)}
+          className={`px-5 py-3 rounded-2xl border transition-all duration-300 hover:scale-105
+          ${
+            darkMode
+              ? "bg-slate-800 border-slate-700 text-white"
+              : "bg-white border-slate-200 text-slate-900"
+          }`}
+        >
+          {darkMode ? "☀️ Light" : "🌙 Dark"}
+        </button>
 
       </div>
 
       {/* STATS */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
 
-        {/* TOTAL TASKS */}
-        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
+        {stats.map((item, index) => {
+          const Icon = item.icon;
 
-          <div className="flex items-center justify-between">
+          return (
+            <div
+              key={index}
+              onClick={item.action}
+              className={`${cardStyle}
+              rounded-3xl p-6 border shadow-sm
+              hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.03]
+              transition-all duration-300 cursor-pointer`}
+            >
 
-            <div>
-              <p className="text-slate-500 text-sm font-medium">
-                Total Tasks
-              </p>
+              <div className="flex items-center justify-between">
 
-              <h2 className="text-5xl font-bold mt-3 text-slate-900">
-                {totalTasks}
-              </h2>
+                <div>
 
-              <p className="text-sm text-slate-400 mt-2">
-                All created tasks
-              </p>
-            </div>
+                  <p className={`text-sm font-medium ${textSecondary}`}>
+                    {item.title}
+                  </p>
 
-            <div className="w-16 h-16 rounded-3xl bg-blue-100 flex items-center justify-center shadow-inner">
+                  <h2
+                    className={`text-5xl font-bold mt-3 ${textPrimary}`}
+                  >
+                    {item.value}
+                  </h2>
 
-              <FiClipboard
-                className="text-blue-600"
-                size={28}
-              />
+                  <p
+                    className={`text-sm mt-2 ${
+                      item.subtitleColor || "text-slate-400"
+                    }`}
+                  >
+                    {item.subtitle}
+                  </p>
 
-            </div>
+                </div>
 
-          </div>
-        </div>
+                <div
+                  className={`w-16 h-16 rounded-3xl flex items-center justify-center shadow-inner ${item.iconBg}`}
+                >
 
-        {/* COMPLETED */}
-        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
+                  <Icon
+                    className={item.iconColor}
+                    size={28}
+                  />
 
-          <div className="flex items-center justify-between">
+                </div>
 
-            <div>
-              <p className="text-slate-500 text-sm font-medium">
-                Completed
-              </p>
-
-              <h2 className="text-5xl font-bold mt-3 text-slate-900">
-                {completedTasks}
-              </h2>
-
-              <p className="text-sm text-green-500 mt-2">
-                Great progress
-              </p>
-            </div>
-
-            <div className="w-16 h-16 rounded-3xl bg-green-100 flex items-center justify-center shadow-inner">
-
-              <FiCheckCircle
-                className="text-green-600"
-                size={28}
-              />
+              </div>
 
             </div>
-
-          </div>
-        </div>
-
-        {/* EXAMS */}
-        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
-
-          <div className="flex items-center justify-between">
-
-            <div>
-              <p className="text-slate-500 text-sm font-medium">
-                Upcoming Exams
-              </p>
-
-              <h2 className="text-5xl font-bold mt-3 text-slate-900">
-                {upcomingExams}
-              </h2>
-
-              <p className="text-sm text-orange-500 mt-2">
-                Stay prepared
-              </p>
-            </div>
-
-            <div className="w-16 h-16 rounded-3xl bg-orange-100 flex items-center justify-center shadow-inner">
-
-              <FiCalendar
-                className="text-orange-600"
-                size={28}
-              />
-
-            </div>
-
-          </div>
-        </div>
-
-        {/* COURSES */}
-        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
-
-          <div className="flex items-center justify-between">
-
-            <div>
-              <p className="text-slate-500 text-sm font-medium">
-                Courses
-              </p>
-
-              <h2 className="text-5xl font-bold mt-3 text-slate-900">
-                {totalCourses}
-              </h2>
-
-              <p className="text-sm text-purple-500 mt-2">
-                Active subjects
-              </p>
-            </div>
-
-            <div className="w-16 h-16 rounded-3xl bg-purple-100 flex items-center justify-center shadow-inner">
-
-              <FiBookOpen
-                className="text-purple-600"
-                size={28}
-              />
-
-            </div>
-
-          </div>
-        </div>
+          );
+        })}
 
       </div>
 
-      {/* MAIN GRID */}
+      {/* CONTENT */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
-        {/* TASKS SECTION */}
-        <div className="xl:col-span-2 bg-white rounded-3xl p-7 border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300">
+        {/* TASKS */}
+        <div
+          className={`${cardStyle}
+          xl:col-span-2 rounded-3xl p-7 border shadow-sm`}
+        >
 
           <div className="flex items-center justify-between mb-8">
 
             <div>
-              <h2 className="text-3xl font-bold text-slate-900">
+
+              <h2
+                className={`text-3xl font-bold ${textPrimary}`}
+              >
                 Upcoming Tasks
               </h2>
 
-              <p className="text-slate-500 mt-1">
+              <p className={`mt-1 ${textSecondary}`}>
                 Manage your study goals
               </p>
+
             </div>
 
             <div className="bg-blue-50 text-blue-600 px-4 py-2 rounded-2xl text-sm font-semibold">
@@ -194,35 +216,58 @@ function Dashboard({ tasks, exams, courses }) {
           <div className="space-y-4">
 
             {upcomingTasks.length === 0 ? (
-              <div className="bg-slate-50 rounded-2xl p-6 text-center">
 
-                <p className="text-slate-500">
+              <div
+                className={`rounded-2xl p-6 text-center
+                ${
+                  darkMode
+                    ? "bg-slate-700"
+                    : "bg-slate-50"
+                }`}
+              >
+
+                <p className={textSecondary}>
                   No pending tasks 🎉
                 </p>
 
               </div>
+
             ) : (
+
               upcomingTasks.map((task) => (
+
                 <div
                   key={task.id}
-                  className="flex items-center justify-between p-5 rounded-2xl border border-slate-100 hover:bg-blue-50 hover:border-blue-200 transition-all duration-300"
+                  className={`flex items-center justify-between p-5 rounded-2xl border transition-all duration-300
+                  ${
+                    darkMode
+                      ? "border-slate-700 hover:bg-slate-700"
+                      : "border-slate-100 hover:bg-blue-50 hover:border-blue-200"
+                  }`}
                 >
 
                   <div>
-                    <h3 className="font-semibold text-lg text-slate-900">
+
+                    <h3
+                      className={`font-semibold text-lg ${textPrimary}`}
+                    >
                       {task.title}
                     </h3>
 
-                    <p className="text-sm text-slate-500 mt-1">
+                    <p
+                      className={`text-sm mt-1 ${textSecondary}`}
+                    >
                       {task.course}
                     </p>
+
                   </div>
 
-                  <div className="text-sm font-medium text-slate-400">
+                  <div className={`text-sm ${textSecondary}`}>
                     {task.dueDate}
                   </div>
 
                 </div>
+
               ))
             )}
 
@@ -230,48 +275,71 @@ function Dashboard({ tasks, exams, courses }) {
 
         </div>
 
-        {/* RIGHT SIDEBAR */}
+        {/* RIGHT SIDE */}
         <div className="space-y-6">
 
-          {/* EXAMS PANEL */}
-          <div className="bg-white rounded-3xl p-7 border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300">
+          {/* EXAMS */}
+          <div
+            onClick={() => setPage("exams")}
+            className={`${cardStyle}
+            rounded-3xl p-7 border shadow-sm cursor-pointer transition-all duration-300
+            ${
+              darkMode
+                ? "hover:bg-slate-700"
+                : "hover:bg-orange-50"
+            }`}
+          >
 
-            <div className="flex items-center justify-between mb-6">
+            <h2
+              className={`text-2xl font-bold ${textPrimary}`}
+            >
+              Upcoming Exams
+            </h2>
 
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900">
-                  Upcoming Exams
-                </h2>
+            <p className={`mt-1 text-sm ${textSecondary}`}>
+              Don’t miss deadlines
+            </p>
 
-                <p className="text-slate-500 mt-1 text-sm">
-                  Don’t miss deadlines
-                </p>
-              </div>
-
-            </div>
-
-            <div className="space-y-4">
+            <div className="space-y-4 mt-6">
 
               {exams.length === 0 ? (
-                <div className="bg-slate-50 rounded-2xl p-5 text-center">
 
-                  <p className="text-slate-500">
+                <div
+                  className={`rounded-2xl p-5 text-center
+                  ${
+                    darkMode
+                      ? "bg-slate-700"
+                      : "bg-slate-50"
+                  }`}
+                >
+
+                  <p className={textSecondary}>
                     No exams added
                   </p>
 
                 </div>
+
               ) : (
+
                 exams.map((exam) => (
+
                   <div
                     key={exam.id}
-                    className="p-5 rounded-2xl bg-slate-50 hover:bg-orange-50 transition-all duration-300"
+                    className={`p-5 rounded-2xl transition-all duration-300
+                    ${
+                      darkMode
+                        ? "bg-slate-700 hover:bg-slate-600"
+                        : "bg-slate-50 hover:bg-orange-100"
+                    }`}
                   >
 
-                    <h3 className="font-semibold text-slate-900 text-lg">
+                    <h3
+                      className={`font-semibold text-lg ${textPrimary}`}
+                    >
                       {exam.examTitle}
                     </h3>
 
-                    <p className="text-sm text-slate-500 mt-1">
+                    <p className={`text-sm mt-1 ${textSecondary}`}>
                       {exam.course}
                     </p>
 
@@ -280,6 +348,7 @@ function Dashboard({ tasks, exams, courses }) {
                     </p>
 
                   </div>
+
                 ))
               )}
 
@@ -287,47 +356,75 @@ function Dashboard({ tasks, exams, courses }) {
 
           </div>
 
-          {/* COURSES PANEL */}
-          <div className="bg-white rounded-3xl p-7 border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300">
+          {/* COURSES */}
+          <div
+            onClick={() => setPage("courses")}
+            className={`${cardStyle}
+            rounded-3xl p-7 border shadow-sm cursor-pointer transition-all duration-300
+            ${
+              darkMode
+                ? "hover:bg-slate-700"
+                : "hover:bg-purple-50"
+            }`}
+          >
 
-            <div className="mb-6">
+            <h2
+              className={`text-2xl font-bold ${textPrimary}`}
+            >
+              Courses
+            </h2>
 
-              <h2 className="text-2xl font-bold text-slate-900">
-                Courses
-              </h2>
+            <p className={`mt-1 text-sm ${textSecondary}`}>
+              Your active courses
+            </p>
 
-              <p className="text-slate-500 mt-1 text-sm">
-                Your active courses
-              </p>
-
-            </div>
-
-            <div className="space-y-3">
+            <div className="space-y-3 mt-6">
 
               {courses.length === 0 ? (
-                <div className="bg-slate-50 rounded-2xl p-5 text-center">
 
-                  <p className="text-slate-500">
+                <div
+                  className={`rounded-2xl p-5 text-center
+                  ${
+                    darkMode
+                      ? "bg-slate-700"
+                      : "bg-slate-50"
+                  }`}
+                >
+
+                  <p className={textSecondary}>
                     No courses added
                   </p>
 
                 </div>
+
               ) : (
+
                 courses.map((course) => (
+
                   <div
                     key={course.id}
-                    className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 hover:bg-purple-50 transition-all duration-300"
+                    className={`flex items-center justify-between p-4 rounded-2xl transition-all duration-300
+                    ${
+                      darkMode
+                        ? "bg-slate-700 hover:bg-slate-600"
+                        : "bg-slate-50 hover:bg-purple-100"
+                    }`}
                   >
 
-                    <span className="font-medium text-slate-800">
+                    <span
+                      className={`font-medium ${textPrimary}`}
+                    >
                       {course.name}
                     </span>
 
-                    <span className="text-sm text-slate-500">
+                    <span
+                      className={`text-sm ${textSecondary}`}
+                    >
                       {course.semester}
                     </span>
 
                   </div>
+
                 ))
               )}
 
@@ -336,7 +433,9 @@ function Dashboard({ tasks, exams, courses }) {
           </div>
 
         </div>
+
       </div>
+
     </div>
   );
 }

@@ -1,57 +1,69 @@
 import { useState } from "react";
 
 import {
-  FiPlus,
-  FiTrash2,
   FiBookOpen,
+  FiTrash2,
+  FiPlus,
 } from "react-icons/fi";
 
 function Courses({ courses, setCourses }) {
-  const [courseName, setCourseName] = useState("");
+  const [name, setName] = useState("");
   const [semester, setSemester] = useState("");
-  const [color, setColor] = useState("blue");
+
+  const [selectedColor, setSelectedColor] =
+    useState("blue");
 
   const addCourse = () => {
-    if (!courseName || !semester) return;
+    if (!name || !semester) return;
 
     const newCourse = {
       id: Date.now(),
-      name: courseName,
+      name,
       semester,
-      color,
+      color: selectedColor,
     };
 
     setCourses([...courses, newCourse]);
 
-    setCourseName("");
+    setName("");
     setSemester("");
-    setColor("blue");
+    setSelectedColor("blue");
   };
 
   const deleteCourse = (id) => {
-    setCourses(
-      courses.filter((course) => course.id !== id)
+    const filteredCourses = courses.filter(
+      (course) => course.id !== id
     );
+
+    setCourses(filteredCourses);
   };
 
-  const getCardStyle = (color) => {
+  const getCardColor = (color) => {
     if (color === "blue") {
       return "from-blue-500 to-indigo-600";
     }
 
-    if (color === "green") {
-      return "from-emerald-500 to-green-600";
+    if (color === "purple") {
+      return "from-purple-500 to-fuchsia-600";
     }
 
-    if (color === "purple") {
-      return "from-purple-500 to-pink-500";
+    if (color === "green") {
+      return "from-green-500 to-emerald-600";
+    }
+
+    if (color === "red") {
+      return "from-red-500 to-rose-600";
     }
 
     if (color === "orange") {
-      return "from-orange-500 to-red-500";
+      return "from-orange-500 to-amber-600";
     }
 
-    return "from-slate-500 to-slate-700";
+    if (color === "pink") {
+      return "from-pink-500 to-rose-500";
+    }
+
+    return "from-blue-500 to-indigo-600";
   };
 
   return (
@@ -65,7 +77,7 @@ function Courses({ courses, setCourses }) {
         </h1>
 
         <p className="text-slate-500 mt-3 text-lg">
-          Manage your active subjects and semesters.
+          Manage your study subjects beautifully.
         </p>
 
       </div>
@@ -81,7 +93,7 @@ function Courses({ courses, setCourses }) {
             </h2>
 
             <p className="text-slate-500 mt-1">
-              Create a new course card
+              Create a new subject workspace
             </p>
           </div>
 
@@ -97,62 +109,87 @@ function Courses({ courses, setCourses }) {
         </div>
 
         {/* FORM */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
-          {/* COURSE NAME */}
           <input
             type="text"
             placeholder="Course name"
-            value={courseName}
-            onChange={(e) =>
-              setCourseName(e.target.value)
-            }
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             className="bg-white border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:ring-4 focus:ring-purple-100 transition-all"
           />
 
-          {/* SEMESTER */}
           <input
             type="text"
             placeholder="Semester"
             value={semester}
-            onChange={(e) =>
-              setSemester(e.target.value)
-            }
+            onChange={(e) => setSemester(e.target.value)}
             className="bg-white border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:ring-4 focus:ring-purple-100 transition-all"
           />
 
-          {/* COLOR */}
-          <select
-            value={color}
-            onChange={(e) => setColor(e.target.value)}
-            className="bg-white border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:ring-4 focus:ring-purple-100 transition-all"
-          >
-            <option value="blue">Blue</option>
-            <option value="green">Green</option>
-            <option value="purple">Purple</option>
-            <option value="orange">Orange</option>
-          </select>
+        </div>
+
+        {/* COLOR PICKER */}
+        <div className="mt-8">
+
+          <p className="text-slate-700 font-semibold mb-4">
+            Choose Course Color
+          </p>
+
+          <div className="flex gap-3 flex-wrap">
+
+            {[
+              "blue",
+              "purple",
+              "green",
+              "red",
+              "orange",
+              "pink",
+            ].map((color) => (
+              <button
+                key={color}
+                type="button"
+                onClick={() => setSelectedColor(color)}
+                className={`
+                  w-12 h-12 rounded-2xl transition-all duration-300 border-4
+                  ${color === "blue" && "bg-blue-500"}
+                  ${color === "purple" && "bg-purple-500"}
+                  ${color === "green" && "bg-green-500"}
+                  ${color === "red" && "bg-red-500"}
+                  ${color === "orange" && "bg-orange-500"}
+                  ${color === "pink" && "bg-pink-500"}
+
+                  ${
+                    selectedColor === color
+                      ? "scale-110 border-white shadow-2xl"
+                      : "border-transparent opacity-80 hover:scale-105"
+                  }
+                `}
+              />
+            ))}
+
+          </div>
 
         </div>
 
         {/* BUTTON */}
         <button
           onClick={addCourse}
-          className="mt-6 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-7 py-4 rounded-2xl font-bold shadow-xl hover:scale-[1.02] transition-all duration-300"
+          className="mt-8 bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-7 py-4 rounded-2xl font-bold shadow-xl hover:scale-[1.02] transition-all duration-300"
         >
           Add Course
         </button>
 
       </div>
 
-      {/* COURSES GRID */}
+      {/* COURSE LIST */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
 
         {courses.length === 0 ? (
-          <div className="col-span-full bg-white rounded-3xl p-12 text-center shadow-sm">
+          <div className="bg-white rounded-3xl p-10 text-center shadow-sm col-span-full">
 
             <p className="text-slate-500 text-lg">
-              No courses added yet 📚
+              No courses added 📚
             </p>
 
           </div>
@@ -160,18 +197,15 @@ function Courses({ courses, setCourses }) {
           courses.map((course) => (
             <div
               key={course.id}
-              className={`bg-gradient-to-br ${getCardStyle(
+              className={`bg-gradient-to-br ${getCardColor(
                 course.color
-              )} rounded-[32px] p-7 text-white shadow-2xl hover:scale-[1.02] transition-all duration-300 relative overflow-hidden`}
+              )} rounded-[36px] p-6 text-white shadow-2xl hover:scale-[1.02] transition-all duration-300 relative overflow-hidden`}
             >
 
-              {/* GLOW */}
-              <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
-
               {/* TOP */}
-              <div className="flex items-center justify-between relative z-10">
+              <div className="flex items-center justify-between">
 
-                <div className="w-16 h-16 rounded-3xl bg-white/20 backdrop-blur-xl flex items-center justify-center">
+                <div className="w-16 h-16 rounded-3xl bg-white/20 flex items-center justify-center backdrop-blur-md">
 
                   <FiBookOpen size={30} />
 
@@ -179,7 +213,7 @@ function Courses({ courses, setCourses }) {
 
                 <button
                   onClick={() => deleteCourse(course.id)}
-                  className="w-12 h-12 rounded-2xl bg-white/20 hover:bg-red-500 transition-all duration-300 flex items-center justify-center"
+                  className="w-12 h-12 rounded-2xl bg-white/20 hover:bg-red-500 transition-all flex items-center justify-center"
                 >
 
                   <FiTrash2 size={20} />
@@ -189,34 +223,14 @@ function Courses({ courses, setCourses }) {
               </div>
 
               {/* CONTENT */}
-              <div className="mt-10 relative z-10">
+              <div className="mt-10">
 
-                <h2 className="text-3xl font-bold">
+                <h2 className="text-4xl font-bold tracking-tight">
                   {course.name}
                 </h2>
 
-                <div className="mt-5 inline-flex px-4 py-2 rounded-full bg-white/20 backdrop-blur-xl text-sm font-semibold">
-
+                <div className="mt-6 inline-flex px-4 py-2 rounded-2xl bg-white/20 text-white font-semibold backdrop-blur-md">
                   {course.semester}
-                </div>
-
-                {/* PROGRESS */}
-                <div className="mt-8">
-
-                  <div className="flex items-center justify-between text-sm text-white/80 mb-2">
-
-                    <span>Course Progress</span>
-
-                    <span>72%</span>
-
-                  </div>
-
-                  <div className="h-3 bg-white/20 rounded-full overflow-hidden">
-
-                    <div className="h-full w-[72%] bg-white rounded-full"></div>
-
-                  </div>
-
                 </div>
 
               </div>

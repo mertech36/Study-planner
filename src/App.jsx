@@ -10,6 +10,14 @@ import Exams from "./pages/Exams";
 function App() {
   const [page, setPage] = useState("dashboard");
 
+  /* DARK MODE */
+  const [darkMode, setDarkMode] =
+    useState(false);
+
+  /* TASK FILTER */
+  const [taskFilter, setTaskFilter] =
+    useState("all");
+
   /* TASKS */
   const [tasks, setTasks] = useState(() => {
     return JSON.parse(localStorage.getItem("tasks")) || [];
@@ -28,26 +36,40 @@ function App() {
   /* LOCAL STORAGE SAVE */
 
   useEffect(() => {
-    localStorage.setItem("tasks", JSON.stringify(tasks));
+    localStorage.setItem(
+      "tasks",
+      JSON.stringify(tasks)
+    );
   }, [tasks]);
 
   useEffect(() => {
-    localStorage.setItem("exams", JSON.stringify(exams));
+    localStorage.setItem(
+      "exams",
+      JSON.stringify(exams)
+    );
   }, [exams]);
 
   useEffect(() => {
-    localStorage.setItem("courses", JSON.stringify(courses));
+    localStorage.setItem(
+      "courses",
+      JSON.stringify(courses)
+    );
   }, [courses]);
 
   /* PAGE RENDER */
 
   const renderPage = () => {
+
     if (page === "dashboard") {
       return (
         <Dashboard
           tasks={tasks}
           exams={exams}
           courses={courses}
+          setPage={setPage}
+          setTaskFilter={setTaskFilter}
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
         />
       );
     }
@@ -57,6 +79,8 @@ function App() {
         <Tasks
           tasks={tasks}
           setTasks={setTasks}
+          taskFilter={taskFilter}
+          setTaskFilter={setTaskFilter}
         />
       );
     }
@@ -81,7 +105,14 @@ function App() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f5f7fb]">
+    <div
+      className={`flex min-h-screen transition-all duration-500
+      ${
+        darkMode
+          ? "bg-gradient-to-br from-[#0f172a] via-[#081028] to-[#020617]"
+          : "bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100"
+      }`}
+    >
 
       {/* SIDEBAR */}
       <Sidebar

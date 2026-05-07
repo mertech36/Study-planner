@@ -6,14 +6,17 @@ import {
   FiCheckCircle,
 } from "react-icons/fi";
 
-function Tasks({ tasks, setTasks }) {
+function Tasks({
+  tasks,
+  setTasks,
+  taskFilter,
+  setTaskFilter,
+}) {
   const [title, setTitle] = useState("");
   const [course, setCourse] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState("Medium");
   const [status, setStatus] = useState("To Do");
-
-  const [filter, setFilter] = useState("all");
 
   const addTask = () => {
     if (!title || !course || !dueDate) return;
@@ -56,8 +59,11 @@ function Tasks({ tasks, setTasks }) {
   };
 
   const filteredTasks = tasks.filter((task) => {
-    if (filter === "completed") return task.completed;
-    if (filter === "pending") return !task.completed;
+    if (taskFilter === "completed")
+      return task.completed;
+
+    if (taskFilter === "pending")
+      return !task.completed;
 
     return true;
   });
@@ -117,6 +123,7 @@ function Tasks({ tasks, setTasks }) {
         {/* FORM */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
 
+          {/* TITLE */}
           <input
             type="text"
             placeholder="Task title"
@@ -125,6 +132,7 @@ function Tasks({ tasks, setTasks }) {
             className="bg-white border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:ring-4 focus:ring-blue-100 transition-all"
           />
 
+          {/* COURSE */}
           <input
             type="text"
             placeholder="Course"
@@ -133,6 +141,7 @@ function Tasks({ tasks, setTasks }) {
             className="bg-white border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:ring-4 focus:ring-blue-100 transition-all"
           />
 
+          {/* DATE */}
           <input
             type="date"
             value={dueDate}
@@ -177,11 +186,12 @@ function Tasks({ tasks, setTasks }) {
       {/* FILTERS */}
       <div className="flex gap-4">
 
+        {/* ALL */}
         <button
-          onClick={() => setFilter("all")}
+          onClick={() => setTaskFilter("all")}
           className={`px-5 py-3 rounded-2xl font-semibold transition-all
           ${
-            filter === "all"
+            taskFilter === "all"
               ? "bg-blue-500 text-white shadow-lg"
               : "bg-white text-slate-600"
           }`}
@@ -189,11 +199,12 @@ function Tasks({ tasks, setTasks }) {
           All
         </button>
 
+        {/* COMPLETED */}
         <button
-          onClick={() => setFilter("completed")}
+          onClick={() => setTaskFilter("completed")}
           className={`px-5 py-3 rounded-2xl font-semibold transition-all
           ${
-            filter === "completed"
+            taskFilter === "completed"
               ? "bg-green-500 text-white shadow-lg"
               : "bg-white text-slate-600"
           }`}
@@ -201,11 +212,12 @@ function Tasks({ tasks, setTasks }) {
           Completed
         </button>
 
+        {/* PENDING */}
         <button
-          onClick={() => setFilter("pending")}
+          onClick={() => setTaskFilter("pending")}
           className={`px-5 py-3 rounded-2xl font-semibold transition-all
           ${
-            filter === "pending"
+            taskFilter === "pending"
               ? "bg-orange-500 text-white shadow-lg"
               : "bg-white text-slate-600"
           }`}

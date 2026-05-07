@@ -29,7 +29,7 @@ function Sidebar({ page, setPage }) {
 
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            StudyPlan
+            StudyPlanner
           </h1>
 
           <p className="text-sm text-slate-500 mt-1">
