@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 
+import Sidebar from "./components/layout/Sidebar";
+
 import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
 import Courses from "./pages/Courses";
@@ -24,6 +26,7 @@ function App() {
   });
 
   /* LOCAL STORAGE SAVE */
+
   useEffect(() => {
     localStorage.setItem("tasks", JSON.stringify(tasks));
   }, [tasks]);
@@ -37,6 +40,7 @@ function App() {
   }, [courses]);
 
   /* PAGE RENDER */
+
   const renderPage = () => {
     if (page === "dashboard") {
       return (
@@ -77,36 +81,19 @@ function App() {
   };
 
   return (
-    <div>
-      {/* NAVBAR */}
-      <div className="navbar">
+    <div className="flex min-h-screen bg-[#f5f7fb]">
 
-        <div className="logo-box">
-          {/* 🔥 PUBLIC LOGO */}
-          <img src="/icon.png" alt="Logo" className="logo" />
-          <span className="logo-text">Study Planner</span>
-        </div>
+      {/* SIDEBAR */}
+      <Sidebar
+        page={page}
+        setPage={setPage}
+      />
 
-        <button onClick={() => setPage("dashboard")}>
-          Dashboard
-        </button>
+      {/* MAIN CONTENT */}
+      <main className="flex-1 p-8 overflow-y-auto">
+        {renderPage()}
+      </main>
 
-        <button onClick={() => setPage("tasks")}>
-          Tasks
-        </button>
-
-        <button onClick={() => setPage("courses")}>
-          Courses
-        </button>
-
-        <button onClick={() => setPage("exams")}>
-          Exams
-        </button>
-
-      </div>
-
-      {/* PAGE */}
-      {renderPage()}
     </div>
   );
 }
