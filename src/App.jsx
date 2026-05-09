@@ -6,8 +6,10 @@ import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
 import Courses from "./pages/Courses";
 import Exams from "./pages/Exams";
+import Focus from "./pages/Focus";
 
 function App() {
+
   const [page, setPage] = useState("dashboard");
 
   /* DARK MODE */
@@ -20,17 +22,23 @@ function App() {
 
   /* TASKS */
   const [tasks, setTasks] = useState(() => {
-    return JSON.parse(localStorage.getItem("tasks")) || [];
+    return JSON.parse(
+      localStorage.getItem("tasks")
+    ) || [];
   });
 
   /* EXAMS */
   const [exams, setExams] = useState(() => {
-    return JSON.parse(localStorage.getItem("exams")) || [];
+    return JSON.parse(
+      localStorage.getItem("exams")
+    ) || [];
   });
 
   /* COURSES */
   const [courses, setCourses] = useState(() => {
-    return JSON.parse(localStorage.getItem("courses")) || [];
+    return JSON.parse(
+      localStorage.getItem("courses")
+    ) || [];
   });
 
   /* LOCAL STORAGE SAVE */
@@ -60,6 +68,7 @@ function App() {
 
   const renderPage = () => {
 
+    /* DASHBOARD */
     if (page === "dashboard") {
       return (
         <Dashboard
@@ -74,6 +83,7 @@ function App() {
       );
     }
 
+    /* TASKS */
     if (page === "tasks") {
       return (
         <Tasks
@@ -81,30 +91,47 @@ function App() {
           setTasks={setTasks}
           taskFilter={taskFilter}
           setTaskFilter={setTaskFilter}
+          darkMode={darkMode}
         />
       );
     }
 
+    /* COURSES */
     if (page === "courses") {
       return (
         <Courses
           courses={courses}
           setCourses={setCourses}
+          darkMode={darkMode}
         />
       );
     }
 
+    /* EXAMS */
     if (page === "exams") {
       return (
         <Exams
           exams={exams}
           setExams={setExams}
+          darkMode={darkMode}
         />
       );
     }
+
+    /* FOCUS MODE */
+    if (page === "focus") {
+      return (
+        <Focus
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
+        />
+      );
+    }
+
   };
 
   return (
+
     <div
       className={`flex min-h-screen transition-all duration-500
       ${
@@ -118,6 +145,7 @@ function App() {
       <Sidebar
         page={page}
         setPage={setPage}
+        darkMode={darkMode}
       />
 
       {/* MAIN CONTENT */}
@@ -126,6 +154,7 @@ function App() {
       </main>
 
     </div>
+
   );
 }
 

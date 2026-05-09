@@ -8,7 +8,10 @@ import {
   FiSettings,
 } from "react-icons/fi";
 
-function Sidebar({ page, setPage }) {
+function Sidebar({
+  page,
+  setPage,
+}){
   return (
     <aside className="w-[280px] h-screen sticky top-0 bg-white/70 backdrop-blur-2xl border-r border-white/40 shadow-xl flex flex-col px-6 py-7">
 
@@ -192,16 +195,19 @@ function Sidebar({ page, setPage }) {
           </div>
 
           <h3 className="text-xl font-bold mt-6">
-            Stay Focused 🚀
+            Stay Focused 
           </h3>
 
           <p className="text-sm text-blue-100 mt-3 leading-relaxed">
             Complete your daily goals and keep your streak alive.
           </p>
 
-          <button className="mt-6 w-full py-3 rounded-2xl bg-white text-slate-900 font-bold hover:scale-[1.02] transition-all duration-300">
-            Continue Studying
-          </button>
+<button
+  onClick={() => setPage("focus")}
+  className="mt-6 w-full py-3 rounded-2xl bg-white text-slate-900 font-bold hover:scale-[1.02] transition-all duration-300"
+>
+  Continue Studying
+</button>
 
         </div>
 
