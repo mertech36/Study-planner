@@ -6,7 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
 import Courses from "./pages/Courses";
 import Exams from "./pages/Exams";
-import Focus from "./pages/Focus";
+import focus from "./pages/focus";
 
 function App() {
 
