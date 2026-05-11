@@ -41,6 +41,17 @@ function App() {
     ) || [];
   });
 
+  /* FOCUS TIMER */
+  const [focusTime, setFocusTime] =
+    useState(() => {
+      return JSON.parse(
+        localStorage.getItem("focusTime")
+      ) || 1500; // 25 dakika
+    });
+
+  const [isRunning, setIsRunning] =
+    useState(false);
+
   /* LOCAL STORAGE SAVE */
 
   useEffect(() => {
@@ -63,6 +74,13 @@ function App() {
       JSON.stringify(courses)
     );
   }, [courses]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "focusTime",
+      JSON.stringify(focusTime)
+    );
+  }, [focusTime]);
 
   /* PAGE RENDER */
 
@@ -124,6 +142,12 @@ function App() {
         <Focus
           darkMode={darkMode}
           setDarkMode={setDarkMode}
+
+          focusTime={focusTime}
+          setFocusTime={setFocusTime}
+
+          isRunning={isRunning}
+          setIsRunning={setIsRunning}
         />
       );
     }
