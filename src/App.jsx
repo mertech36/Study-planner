@@ -96,13 +96,18 @@ function App() {
   };
 
   const renderPage = () => {
-    if (page === "dashboard") return (
-      <Dashboard
-        tasks={tasks} exams={exams} courses={courses}
-        setPage={setPage} setTaskFilter={setTaskFilter}
-        darkMode={darkMode} setDarkMode={setDarkMode}
-      />
-    );
+   if (page === "dashboard") return (
+  <Dashboard
+    tasks={tasks}
+    setTasks={setTasks}   // ← bunu ekle
+    exams={exams}
+    courses={courses}
+    setPage={setPage}
+    setTaskFilter={setTaskFilter}
+    darkMode={darkMode}
+    setDarkMode={setDarkMode}
+  />
+);
     if (page === "tasks") return (
       <Tasks
         tasks={tasks} setTasks={setTasks}
