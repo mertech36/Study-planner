@@ -1,16 +1,22 @@
 import { useState, useEffect, useRef } from "react";
+import { FiMenu } from "react-icons/fi";
 
 import Sidebar from "./components/layout/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
 import Courses from "./pages/Courses";
 import Exams from "./pages/Exams";
-import Focus from "./pages/focus";
+import Focus from "./pages/Focus";
+
+const POMODORO_TIME = 25 * 60;
+const BREAK_TIME = 5 * 60;
+const LONG_BREAK_TIME = 15 * 60;
 
 function App() {
   const [page, setPage] = useState("dashboard");
   const [darkMode, setDarkMode] = useState(false);
   const [taskFilter, setTaskFilter] = useState("all");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [tasks, setTasks] = useState(() => JSON.parse(localStorage.getItem("tasks")) || []);
   const [exams, setExams] = useState(() => JSON.parse(localStorage.getItem("exams")) || []);
@@ -20,14 +26,7 @@ function App() {
   useEffect(() => { localStorage.setItem("exams", JSON.stringify(exams)); }, [exams]);
   useEffect(() => { localStorage.setItem("courses", JSON.stringify(courses)); }, [courses]);
 
-  /* ─────────────────────────────────────────
-     TIMER STATE — App seviyesinde, sayfa
-     değişse bile timer durmuyor
-  ───────────────────────────────────────── */
-  const POMODORO_TIME = 25 * 60;
-  const BREAK_TIME = 5 * 60;
-  const LONG_BREAK_TIME = 15 * 60;
-
+  /* ── TIMER STATE ── */
   const [focusTime, setFocusTime] = useState(POMODORO_TIME);
   const [isRunning, setIsRunning] = useState(false);
   const [timerMode, setTimerMode] = useState("Focus");
@@ -61,7 +60,6 @@ function App() {
     } catch (e) {}
   };
 
-  // Timer App seviyesinde çalışır — sayfa değişse de durmuyor
   useEffect(() => {
     if (isRunning) {
       timerRef.current = setInterval(() => {
@@ -96,18 +94,14 @@ function App() {
   };
 
   const renderPage = () => {
-   if (page === "dashboard") return (
-  <Dashboard
-    tasks={tasks}
-    setTasks={setTasks}   // ← bunu ekle
-    exams={exams}
-    courses={courses}
-    setPage={setPage}
-    setTaskFilter={setTaskFilter}
-    darkMode={darkMode}
-    setDarkMode={setDarkMode}
-  />
-);
+    if (page === "dashboard") return (
+      <Dashboard
+        tasks={tasks} setTasks={setTasks}
+        exams={exams} courses={courses}
+        setPage={setPage} setTaskFilter={setTaskFilter}
+        darkMode={darkMode} setDarkMode={setDarkMode}
+      />
+    );
     if (page === "tasks") return (
       <Tasks
         tasks={tasks} setTasks={setTasks}
@@ -127,13 +121,35 @@ function App() {
   };
 
   return (
-    <div className={`flex min-h-screen transition-all duration-500 ${
+    <div className={`min-h-screen transition-all duration-500 ${
       darkMode
         ? "bg-gradient-to-br from-[#0f172a] via-[#081028] to-[#020617]"
         : "bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100"
     }`}>
-      <Sidebar page={page} setPage={setPage} darkMode={darkMode} />
-      <main className="flex-1 p-8 overflow-y-auto">
+
+      {/* HAMBURGER BUTTON — sol üst köşe, her zaman görünür */}
+      <button
+        onClick={() => setSidebarOpen(true)}
+        className={`fixed top-5 left-5 z-50 w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg transition-all hover:scale-105 ${
+          darkMode
+            ? "bg-white/10 text-white border border-white/10"
+            : "bg-white text-slate-700 border border-slate-200"
+        } ${sidebarOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+      >
+        <FiMenu size={20} />
+      </button>
+
+      {/* SIDEBAR */}
+      <Sidebar
+        page={page}
+        setPage={setPage}
+        isOpen={sidebarOpen}
+        setIsOpen={setSidebarOpen}
+        darkMode={darkMode}
+      />
+
+      {/* MAIN CONTENT */}
+      <main className="min-h-screen p-8 pt-20">
         {renderPage()}
       </main>
     </div>
