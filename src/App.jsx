@@ -6,7 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
 import Courses from "./pages/Courses";
 import Exams from "./pages/Exams";
-import Focus from "./pages/Focus";
+import Focus from "./pages/focus";
 
 const POMODORO_TIME = 25 * 60;
 const BREAK_TIME = 5 * 60;
