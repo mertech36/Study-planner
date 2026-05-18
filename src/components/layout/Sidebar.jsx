@@ -57,7 +57,7 @@ function Sidebar({ page, setPage, isOpen, setIsOpen, darkMode }) {
                 StudyPlanner
               </h1>
               <p className={`text-xs mt-0.5 ${dm ? "text-slate-400" : "text-slate-500"}`}>
-                Smart Student Workspace
+                Smart Students Workspace
               </p>
             </div>
           </div>
@@ -145,10 +145,20 @@ function Sidebar({ page, setPage, isOpen, setIsOpen, darkMode }) {
 
         {/* FOOTER */}
         <div className="mt-auto pt-4">
-          <button className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 ${
-            dm ? "text-slate-400 hover:bg-white/10" : "text-slate-500 hover:bg-white hover:shadow-md"
-          }`}>
-            <FiSettings size={18} />
+          <button 
+            onClick={() => handleNav("settings")} 
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 ${
+              page === "settings"
+                ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-xl shadow-blue-200 scale-[1.02]"
+                : dm 
+                  ? "text-slate-400 hover:bg-white/10" 
+                  : "text-slate-500 hover:bg-white hover:shadow-md"
+            }`}
+          >
+            <FiSettings 
+              size={18} 
+              className={page === "settings" ? "text-white" : ""} 
+            />
             <span className="font-medium text-sm">Settings</span>
           </button>
         </div>

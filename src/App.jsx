@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { FiMenu } from "react-icons/fi";
 
+import Settings from "./pages/Settings";
 import Sidebar from "./components/layout/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
@@ -93,7 +94,7 @@ function App() {
     playAlarm,
   };
 
-  const renderPage = () => {
+const renderPage = () => {
     if (page === "dashboard") return (
       <Dashboard
         tasks={tasks} setTasks={setTasks}
@@ -117,6 +118,11 @@ function App() {
     );
     if (page === "focus") return (
       <Focus darkMode={darkMode} setDarkMode={setDarkMode} focusProps={focusProps} />
+    );
+    
+    // İŞTE BURAYI YENİ EKLEDİK:
+    if (page === "settings") return (
+      <Settings darkMode={darkMode} setDarkMode={setDarkMode} />
     );
   };
 
