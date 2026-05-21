@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { FiMenu } from "react-icons/fi";
 
+import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import Sidebar from "./components/layout/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
 import Courses from "./pages/Courses";
 import Exams from "./pages/Exams";
-import Focus from "./pages/focus";
+import Focus from "./pages/Focus";
 
 const POMODORO_TIME = 25 * 60;
 const BREAK_TIME = 5 * 60;
@@ -19,6 +20,22 @@ function App() {
   const [taskFilter, setTaskFilter] = useState("all");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  /* ── SETTINGS STATE — App seviyesinde, localStorage'a kaydedilir ── */
+  const [userName, setUserName] = useState(() => localStorage.getItem("userName") || "Alex Johnson");
+  const [userEmail, setUserEmail] = useState(() => localStorage.getItem("userEmail") || "alex.johnson@email.com");
+  const [themeColor, setThemeColor] = useState(() => localStorage.getItem("themeColor") || "blue");
+  const [notifExams, setNotifExams] = useState(() => localStorage.getItem("notifExams") !== "false");
+  const [notifTasks, setNotifTasks] = useState(() => localStorage.getItem("notifTasks") === "true");
+  const [notifFocus, setNotifFocus] = useState(() => localStorage.getItem("notifFocus") !== "false");
+
+  useEffect(() => { localStorage.setItem("userName", userName); }, [userName]);
+  useEffect(() => { localStorage.setItem("userEmail", userEmail); }, [userEmail]);
+  useEffect(() => { localStorage.setItem("themeColor", themeColor); }, [themeColor]);
+  useEffect(() => { localStorage.setItem("notifExams", String(notifExams)); }, [notifExams]);
+  useEffect(() => { localStorage.setItem("notifTasks", String(notifTasks)); }, [notifTasks]);
+  useEffect(() => { localStorage.setItem("notifFocus", String(notifFocus)); }, [notifFocus]);
+
+  /* ── DATA STATE ── */
   const [tasks, setTasks] = useState(() => JSON.parse(localStorage.getItem("tasks")) || []);
   const [exams, setExams] = useState(() => JSON.parse(localStorage.getItem("exams")) || []);
   const [courses, setCourses] = useState(() => JSON.parse(localStorage.getItem("courses")) || []);
@@ -90,11 +107,19 @@ function App() {
     focusHours, setFocusHours,
     goalMinutes, setGoalMinutes,
     sessionsList, setSessionsList,
-    timerRef,
-    playAlarm,
+    timerRef, playAlarm,
   };
 
-const renderPage = () => {
+  const settingsProps = {
+    userName, setUserName,
+    userEmail, setUserEmail,
+    themeColor, setThemeColor,
+    notifExams, setNotifExams,
+    notifTasks, setNotifTasks,
+    notifFocus, setNotifFocus,
+  };
+
+  const renderPage = () => {
     if (page === "dashboard") return (
       <Dashboard
         tasks={tasks} setTasks={setTasks}
@@ -119,11 +144,20 @@ const renderPage = () => {
     if (page === "focus") return (
       <Focus darkMode={darkMode} setDarkMode={setDarkMode} focusProps={focusProps} />
     );
-    
-    // İŞTE BURAYI YENİ EKLEDİK:
     if (page === "settings") return (
-      <Settings darkMode={darkMode} setDarkMode={setDarkMode} />
+      <Settings darkMode={darkMode} setDarkMode={setDarkMode} settingsProps={settingsProps} />
     );
+
+    if (page === "analytics") return (
+  <Analytics
+    tasks={tasks}
+    courses={courses}
+    exams={exams}
+    focusHours={focusHours}
+    sessions={sessions}
+    darkMode={darkMode}
+  />
+);
   };
 
   return (
@@ -132,29 +166,21 @@ const renderPage = () => {
         ? "bg-gradient-to-br from-[#0f172a] via-[#081028] to-[#020617]"
         : "bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100"
     }`}>
-
-      {/* HAMBURGER BUTTON — sol üst köşe, her zaman görünür */}
       <button
         onClick={() => setSidebarOpen(true)}
         className={`fixed top-5 left-5 z-50 w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg transition-all hover:scale-105 ${
-          darkMode
-            ? "bg-white/10 text-white border border-white/10"
-            : "bg-white text-slate-700 border border-slate-200"
+          darkMode ? "bg-white/10 text-white border border-white/10" : "bg-white text-slate-700 border border-slate-200"
         } ${sidebarOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}
       >
         <FiMenu size={20} />
       </button>
 
-      {/* SIDEBAR */}
       <Sidebar
-        page={page}
-        setPage={setPage}
-        isOpen={sidebarOpen}
-        setIsOpen={setSidebarOpen}
+        page={page} setPage={setPage}
+        isOpen={sidebarOpen} setIsOpen={setSidebarOpen}
         darkMode={darkMode}
       />
 
-      {/* MAIN CONTENT */}
       <main className="min-h-screen p-8 pt-20">
         {renderPage()}
       </main>

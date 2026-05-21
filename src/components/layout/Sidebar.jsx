@@ -7,16 +7,23 @@ import {
   FiBell,
   FiSettings,
   FiX,
+  FiBarChart2,
 } from "react-icons/fi";
 
-function Sidebar({ page, setPage, isOpen, setIsOpen, darkMode }) {
+function Sidebar({ page, setPage, isOpen, setIsOpen, darkMode, tasks }) {
   const dm = darkMode;
+
+  // Gerçek productivity hesaplama
+  const total = tasks?.length || 0;
+  const completed = tasks?.filter((t) => t.completed).length || 0;
+  const productivity = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: FiHome, activeColor: "group-hover:text-blue-500" },
     { id: "tasks", label: "Tasks", icon: FiCheckSquare, activeColor: "group-hover:text-green-500" },
     { id: "courses", label: "Courses", icon: FiBookOpen, activeColor: "group-hover:text-purple-500" },
     { id: "exams", label: "Exams", icon: FiCalendar, activeColor: "group-hover:text-orange-500" },
+    { id: "analytics", label: "Analytics", icon: FiBarChart2, activeColor: "group-hover:text-indigo-500" },
   ];
 
   const handleNav = (id) => {
@@ -24,9 +31,23 @@ function Sidebar({ page, setPage, isOpen, setIsOpen, darkMode }) {
     setIsOpen(false);
   };
 
+  const productivityColor =
+    productivity >= 75 ? "from-green-400 to-emerald-500" :
+    productivity >= 50 ? "from-yellow-400 to-orange-400" :
+    "from-red-400 to-pink-500";
+
+  const productivityTextColor =
+    productivity >= 75 ? (dm ? "text-green-400" : "text-green-600") :
+    productivity >= 50 ? (dm ? "text-yellow-400" : "text-yellow-600") :
+    (dm ? "text-red-400" : "text-red-500");
+
+  const productivityIconBg =
+    productivity >= 75 ? "bg-green-100" :
+    productivity >= 50 ? "bg-yellow-100" : "bg-red-100";
+
   return (
     <>
-      {/* OVERLAY — sidebar açıkken arkaya tıklayınca kapanır */}
+      {/* OVERLAY */}
       {isOpen && (
         <div
           className="fixed inset-0 z-30 bg-black/30 backdrop-blur-sm"
@@ -45,7 +66,7 @@ function Sidebar({ page, setPage, isOpen, setIsOpen, darkMode }) {
           ${isOpen ? "translate-x-0 w-[260px]" : "-translate-x-full w-[260px]"}
         `}
       >
-        {/* TOP — logo + close button */}
+        {/* TOP — logo + close */}
         <div className="flex items-center justify-between mb-8 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -57,12 +78,10 @@ function Sidebar({ page, setPage, isOpen, setIsOpen, darkMode }) {
                 StudyPlanner
               </h1>
               <p className={`text-xs mt-0.5 ${dm ? "text-slate-400" : "text-slate-500"}`}>
-                Smart Students Workspace
+                Smart Student Workspace
               </p>
             </div>
           </div>
-
-          {/* CLOSE BUTTON */}
           <button
             onClick={() => setIsOpen(false)}
             className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-all ${
@@ -106,21 +125,36 @@ function Sidebar({ page, setPage, isOpen, setIsOpen, darkMode }) {
         {/* INFO CARDS */}
         <div className="mt-6 space-y-3">
 
-          {/* PRODUCTIVITY */}
-          <div className={`rounded-3xl p-4 border ${dm ? "bg-white/5 border-white/10" : "bg-white border-slate-100 shadow-md"}`}>
+          {/* PRODUCTIVITY — tıklanabilir, gerçek veri */}
+          <button
+            onClick={() => handleNav("analytics")}
+            className={`w-full rounded-3xl p-4 border text-left hover:scale-[1.02] transition-all duration-300 ${
+              dm
+                ? "bg-white/5 border-white/10 hover:bg-white/10"
+                : "bg-white border-slate-100 shadow-md hover:shadow-lg"
+            }`}
+          >
             <div className="flex items-center justify-between mb-3">
               <div>
                 <p className={`text-xs ${dm ? "text-slate-400" : "text-slate-500"}`}>Productivity</p>
-                <h3 className={`text-xl font-bold mt-0.5 ${dm ? "text-white" : "text-slate-900"}`}>84%</h3>
+                <h3 className={`text-xl font-bold mt-0.5 ${productivityTextColor}`}>
+                  {productivity}%
+                </h3>
               </div>
-              <div className="w-10 h-10 rounded-2xl bg-green-100 flex items-center justify-center">
-                <FiTrendingUp className="text-green-600" size={18} />
+              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${productivityIconBg}`}>
+                <FiTrendingUp className={productivityTextColor} size={18} />
               </div>
             </div>
             <div className={`h-2.5 rounded-full overflow-hidden ${dm ? "bg-white/10" : "bg-slate-100"}`}>
-              <div className="h-full w-[84%] rounded-full bg-gradient-to-r from-green-400 to-emerald-500" />
+              <div
+                className={`h-full rounded-full bg-gradient-to-r ${productivityColor} transition-all duration-700`}
+                style={{ width: `${productivity}%` }}
+              />
             </div>
-          </div>
+            <p className={`text-xs mt-2 ${dm ? "text-slate-500" : "text-slate-400"}`}>
+              {completed}/{total} tasks · tap for analytics
+            </p>
+          </button>
 
           {/* REMINDER */}
           <div className="bg-gradient-to-br from-indigo-500 via-blue-500 to-cyan-500 rounded-3xl p-5 text-white shadow-2xl">
@@ -143,22 +177,19 @@ function Sidebar({ page, setPage, isOpen, setIsOpen, darkMode }) {
           </div>
         </div>
 
-        {/* FOOTER */}
+        {/* FOOTER — Settings */}
         <div className="mt-auto pt-4">
-          <button 
-            onClick={() => handleNav("settings")} 
+          <button
+            onClick={() => handleNav("settings")}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 ${
               page === "settings"
                 ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-xl shadow-blue-200 scale-[1.02]"
-                : dm 
-                  ? "text-slate-400 hover:bg-white/10" 
+                : dm
+                  ? "text-slate-400 hover:bg-white/10"
                   : "text-slate-500 hover:bg-white hover:shadow-md"
             }`}
           >
-            <FiSettings 
-              size={18} 
-              className={page === "settings" ? "text-white" : ""} 
-            />
+            <FiSettings size={18} className={page === "settings" ? "text-white" : ""} />
             <span className="font-medium text-sm">Settings</span>
           </button>
         </div>

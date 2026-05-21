@@ -1,369 +1,299 @@
-import React, { useState } from "react";
-import { 
-  FiUser, 
-  FiMail, 
-  FiLogOut, 
-  FiMoon, 
-  FiSun, 
-  FiBell, 
-  FiCalendar, 
-  FiCheckSquare,
-  FiEdit2,
-  FiCheck,
-  FiClock,
-  FiVolume2,
-  FiPlayCircle
+import { useState } from "react";
+import {
+  FiEdit2, FiCheck, FiLogOut,
+  FiMoon, FiSun, FiBell, FiShield, FiTrash2,
+  FiChevronRight, FiAlertTriangle,
 } from "react-icons/fi";
 
-function Settings({ darkMode, setDarkMode }) {
-  // --- TABS STATE ---
-  const [activeTab, setActiveTab] = useState("account"); // "account" oder "focus"
+function Settings({ darkMode, setDarkMode, settingsProps }) {
+  const {
+    userName, setUserName,
+    userEmail, setUserEmail,
+    themeColor, setThemeColor,
+    notifExams, setNotifExams,
+    notifTasks, setNotifTasks,
+    notifFocus, setNotifFocus,
+  } = settingsProps;
 
-  // --- USER PROFILE STATES ---
-  const [fullName, setFullName] = useState("Ahmet Yilmaz");
-  const [email, setEmail] = useState("ahmet@example.com");
-  
   const [isEditingName, setIsEditingName] = useState(false);
   const [isEditingEmail, setIsEditingEmail] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedSuccess, setSavedSuccess] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // --- THEME STATES ---
-  const [selectedTheme, setSelectedTheme] = useState("blue");
+  const dm = darkMode;
+  const card = dm ? "bg-white/5 border border-white/10" : "bg-white border border-slate-100 shadow-sm";
+  const textMain = dm ? "text-white" : "text-slate-900";
+  const textSub = dm ? "text-slate-400" : "text-slate-500";
+  const inputBg = dm ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200";
+
   const themeColors = [
-    { name: "blue", color: "bg-blue-500", ring: "ring-blue-500/40" },
-    { name: "purple", color: "bg-purple-500", ring: "ring-purple-500/40" },
-    { name: "orange", color: "bg-orange-500", ring: "ring-orange-500/40" },
-    { name: "yellow", color: "bg-yellow-500", ring: "ring-yellow-500/40" },
+    { id: "blue",    bg: "bg-blue-500",    ring: "ring-blue-400",    from: "from-blue-500",    to: "to-indigo-600" },
+    { id: "purple",  bg: "bg-purple-500",  ring: "ring-purple-400",  from: "from-purple-500",  to: "to-fuchsia-600" },
+    { id: "emerald", bg: "bg-emerald-500", ring: "ring-emerald-400", from: "from-emerald-500", to: "to-teal-600" },
+    { id: "orange",  bg: "bg-orange-500",  ring: "ring-orange-400",  from: "from-orange-500",  to: "to-red-500" },
+    { id: "pink",    bg: "bg-pink-500",    ring: "ring-pink-400",    from: "from-pink-500",    to: "to-rose-500" },
   ];
 
-  // --- NOTIFICATION & SOUND STATES ---
-  const [notifExams, setNotifExams] = useState(true); 
-  const [notifTasks, setNotifTasks] = useState(false); 
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  
-  // --- FOCUS / POMODORO STATES ---
-  const [studyDuration, setStudyDuration] = useState("25");
-  const [breakDuration, setBreakDuration] = useState("5");
-  const [longBreakDuration, setLongBreakDuration] = useState("15");
-  const [autoStartBreak, setAutoStartBreak] = useState(false);
-  const [autoStartSession, setAutoStartSession] = useState(false);
+  const activeTheme = themeColors.find((c) => c.id === themeColor) || themeColors[0];
+  const initials = userName.split(" ").map((n) => n[0]).join("").substring(0, 2).toUpperCase() || "U";
 
-  // --- UI EFFECTS & MODALS ---
-  const [isSaving, setIsSaving] = useState(false);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-
-  // --- FUNCTIONS ---
-  const handleSaveDetails = () => {
+  const handleSave = () => {
+    setIsEditingName(false);
+    setIsEditingEmail(false);
     setIsSaving(true);
     setTimeout(() => {
       setIsSaving(false);
-    }, 1000);
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 2500);
+    }, 900);
   };
 
-  const handleLogOut = () => {
-    setShowLogoutModal(false);
-  };
-
-  // Hilfsfunktion für die Toggle-Schalter
-  const ToggleSwitch = ({ checked, onChange }) => (
-    <button 
-      onClick={onChange}
-      className={`relative w-12 h-6 rounded-full transition-colors duration-300 shadow-inner flex-shrink-0 ${
-        checked ? "bg-blue-500" : "bg-slate-300 dark:bg-slate-600"
-      }`}
-    >
-      <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform duration-300 shadow-md ${
-        checked ? "translate-x-6" : "translate-x-0"
-      }`}></div>
+  const Toggle = ({ value, onChange }) => (
+    <button onClick={() => onChange(!value)}
+      className={`relative w-14 h-7 rounded-full transition-colors duration-300 flex-shrink-0 ${value ? "bg-blue-500" : dm ? "bg-white/15" : "bg-slate-200"}`}>
+      <div className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow-md transition-transform duration-300 ${value ? "translate-x-7" : "translate-x-0"}`} />
     </button>
   );
 
   return (
     <>
-      <div className={`p-2 md:p-6 w-full max-w-6xl mx-auto transition-colors duration-500 ${darkMode ? "text-white" : "text-slate-900"}`}>
-        
-        {/* HEADER & TABS */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-extrabold tracking-tight">Settings</h2>
-          <p className={`text-sm mt-1 mb-6 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Manage your account, theme, and focus preferences.</p>
-          
-          <div className={`flex gap-6 border-b ${darkMode ? "border-slate-700" : "border-slate-200"}`}>
-            <button 
-              onClick={() => setActiveTab("account")}
-              className={`pb-3 text-sm font-bold transition-all border-b-2 flex items-center gap-2 ${
-                activeTab === "account" 
-                ? "border-blue-500 text-blue-500" 
-                : `border-transparent ${darkMode ? "text-slate-400 hover:text-slate-200" : "text-slate-500 hover:text-slate-800"}`
-              }`}
-            >
-              <FiUser /> Account & Theme
-            </button>
-            <button 
-              onClick={() => setActiveTab("focus")}
-              className={`pb-3 text-sm font-bold transition-all border-b-2 flex items-center gap-2 ${
-                activeTab === "focus" 
-                ? "border-blue-500 text-blue-500" 
-                : `border-transparent ${darkMode ? "text-slate-400 hover:text-slate-200" : "text-slate-500 hover:text-slate-800"}`
-              }`}
-            >
-              <FiClock /> Focus & Notifications
-            </button>
-          </div>
+      <div className="space-y-8 max-w-5xl mx-auto">
+
+        {/* HEADER */}
+        <div>
+          <h1 className={`text-4xl font-black ${textMain}`}>Settings</h1>
+          <p className={`mt-1 ${textSub}`}>Manage your account and preferences.</p>
         </div>
 
-        {/* TAB CONTENT */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
-          {/* ================= ACCOUNT TAB ================= */}
-          {activeTab === "account" && (
-            <>
-              {/* LEFT COLUMN: Profile Details */}
-              <div className={`p-8 rounded-3xl border transition-colors duration-500 ${
-                darkMode ? "bg-[#1e293b]/50 border-white/10" : "bg-white border-slate-100 shadow-xl shadow-slate-200/40"
-              }`}>
-                <h3 className="text-xl font-bold mb-8 flex items-center gap-2">
-                  <FiUser className="text-blue-500" /> Account Details
-                </h3>
-                
-                <div className="flex flex-col items-center mb-10">
-                  <div className={`w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-xl mb-4 transition-all
-                    ${selectedTheme === "purple" ? "bg-gradient-to-tr from-purple-500 to-fuchsia-600 shadow-purple-500/30" : ""}
-                    ${selectedTheme === "blue" ? "bg-gradient-to-tr from-blue-500 to-cyan-600 shadow-blue-500/30" : ""}
-                    ${selectedTheme === "yellow" ? "bg-gradient-to-tr from-yellow-400 to-orange-500 shadow-yellow-500/30" : ""}
-                    ${selectedTheme === "orange" ? "bg-gradient-to-tr from-orange-500 to-red-600 shadow-orange-500/30" : ""}
-                  `}>
-                    {fullName.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase() || "US"}
-                  </div>
-                  <h4 className="text-2xl font-bold">Hello, {fullName.split(" ")[0]}!</h4>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* LEFT */}
+          <div className="space-y-5">
+
+            {/* PROFILE */}
+            <div className={`${card} rounded-[28px] p-6`}>
+              <h2 className={`text-base font-black mb-5 ${textMain}`}>Profile</h2>
+
+              {/* AVATAR */}
+              <div className="flex flex-col items-center mb-6">
+                <div className={`w-20 h-20 rounded-3xl bg-gradient-to-br ${activeTheme.from} ${activeTheme.to} flex items-center justify-center text-white text-2xl font-black shadow-xl mb-3`}>
+                  {initials}
                 </div>
-                
-                <div className="space-y-6">
-                  <div>
-                    <label className={`text-xs font-bold uppercase tracking-widest flex items-center gap-2 ${darkMode ? "text-slate-500" : "text-slate-400"}`}>
-                      <FiUser size={14} /> Full Name
-                    </label>
-                    <div className={`mt-2 w-full px-5 py-4 rounded-2xl border flex justify-between items-center transition-colors ${
-                      darkMode ? "bg-[#0f172a]/50 border-slate-700" : "bg-slate-50 border-slate-200"
-                    }`}>
-                      {isEditingName ? (
-                        <input 
-                          type="text" 
-                          value={fullName} 
-                          onChange={(e) => setFullName(e.target.value)}
-                          className={`bg-transparent outline-none w-full font-medium ${darkMode ? "text-white" : "text-slate-900"}`}
-                          autoFocus
-                        />
-                      ) : (
-                        <span className="font-medium">{fullName}</span>
-                      )}
-                      <button onClick={() => setIsEditingName(!isEditingName)} className="text-blue-500 text-sm font-semibold hover:text-blue-600 transition-colors ml-4 whitespace-nowrap flex items-center gap-1">
-                        {isEditingName ? <><FiCheck /> Save</> : <><FiEdit2 /> Edit</>}
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className={`text-xs font-bold uppercase tracking-widest flex items-center gap-2 ${darkMode ? "text-slate-500" : "text-slate-400"}`}>
-                      <FiMail size={14} /> Email Address
-                    </label>
-                    <div className={`mt-2 w-full px-5 py-4 rounded-2xl border flex justify-between items-center transition-colors ${
-                      darkMode ? "bg-[#0f172a]/50 border-slate-700" : "bg-slate-50 border-slate-200"
-                    }`}>
-                      {isEditingEmail ? (
-                        <input 
-                          type="email" 
-                          value={email} 
-                          onChange={(e) => setEmail(e.target.value)}
-                          className={`bg-transparent outline-none w-full font-medium ${darkMode ? "text-white" : "text-slate-900"}`}
-                          autoFocus
-                        />
-                      ) : (
-                        <span className="font-medium">{email}</span>
-                      )}
-                      <button onClick={() => setIsEditingEmail(!isEditingEmail)} className="text-blue-500 text-sm font-semibold hover:text-blue-600 transition-colors ml-4 whitespace-nowrap flex items-center gap-1">
-                        {isEditingEmail ? <><FiCheck /> Save</> : <><FiEdit2 /> Edit</>}
-                      </button>
-                    </div>
+                <p className={`text-xs ${textSub}`}>Student</p>
+              </div>
+
+              {/* NAME */}
+              <div className="space-y-3">
+                <div>
+                  <label className={`text-xs font-bold uppercase tracking-widest ${textSub}`}>Full Name</label>
+                  <div className={`mt-1.5 w-full px-4 py-3 rounded-2xl border flex justify-between items-center gap-3 ${inputBg}`}>
+                    {isEditingName ? (
+                      <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)}
+                        autoFocus className={`bg-transparent outline-none w-full text-sm font-medium ${textMain}`} />
+                    ) : (
+                      <span className={`text-sm font-medium truncate ${textMain}`}>{userName}</span>
+                    )}
+                    <button onClick={() => setIsEditingName(!isEditingName)} className="text-blue-500 flex-shrink-0">
+                      {isEditingName ? <FiCheck size={16} /> : <FiEdit2 size={15} />}
+                    </button>
                   </div>
                 </div>
 
-                <div className="mt-10 flex gap-4">
-                  <button onClick={handleSaveDetails} disabled={isSaving} className="flex-1 py-3.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-0.5 flex justify-center items-center gap-2">
-                    {isSaving ? <span className="animate-pulse">Saving...</span> : "Save Details"}
+                {/* EMAIL */}
+                <div>
+                  <label className={`text-xs font-bold uppercase tracking-widest ${textSub}`}>Email</label>
+                  <div className={`mt-1.5 w-full px-4 py-3 rounded-2xl border flex justify-between items-center gap-3 ${inputBg}`}>
+                    {isEditingEmail ? (
+                      <input type="email" value={userEmail} onChange={(e) => setUserEmail(e.target.value)}
+                        autoFocus className={`bg-transparent outline-none w-full text-sm font-medium ${textMain}`} />
+                    ) : (
+                      <span className={`text-sm font-medium truncate ${textMain}`}>{userEmail}</span>
+                    )}
+                    <button onClick={() => setIsEditingEmail(!isEditingEmail)} className="text-blue-500 flex-shrink-0">
+                      {isEditingEmail ? <FiCheck size={16} /> : <FiEdit2 size={15} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* SAVE */}
+              <button onClick={handleSave} disabled={isSaving}
+                className={`mt-5 w-full py-3 rounded-2xl font-bold text-sm transition-all hover:scale-[1.02] flex items-center justify-center gap-2 ${
+                  savedSuccess ? "bg-green-500 text-white" : "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg"
+                }`}>
+                {savedSuccess ? <><FiCheck size={16} /> Saved!</> : isSaving ? <span className="animate-pulse">Saving...</span> : "Save Changes"}
+              </button>
+            </div>
+
+            {/* DANGER ZONE */}
+            <div className={`${card} rounded-[28px] p-6`}>
+              <h2 className="text-base font-black text-red-500 mb-4">Danger Zone</h2>
+              <div className="space-y-2">
+                <button onClick={() => setShowLogoutModal(true)}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all ${dm ? "hover:bg-red-500/10" : "hover:bg-red-50"}`}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-red-100 flex items-center justify-center">
+                      <FiLogOut className="text-red-500" size={15} />
+                    </div>
+                    <span className="text-sm font-semibold text-red-500">Sign Out</span>
+                  </div>
+                  <FiChevronRight className="text-red-400" size={16} />
+                </button>
+
+                <button onClick={() => setShowDeleteModal(true)}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all ${dm ? "hover:bg-red-500/10" : "hover:bg-red-50"}`}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-red-100 flex items-center justify-center">
+                      <FiTrash2 className="text-red-500" size={15} />
+                    </div>
+                    <span className="text-sm font-semibold text-red-500">Delete Account</span>
+                  </div>
+                  <FiChevronRight className="text-red-400" size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT */}
+          <div className="lg:col-span-2 space-y-5">
+
+            {/* APPEARANCE */}
+            <div className={`${card} rounded-[28px] p-6`}>
+              <div className="flex items-center gap-3 mb-6">
+                <div className={`w-9 h-9 rounded-2xl flex items-center justify-center ${dm ? "bg-white/10" : "bg-slate-100"}`}>
+                  {dm ? <FiMoon className={textSub} size={17} /> : <FiSun className={textSub} size={17} />}
+                </div>
+                <h2 className={`text-base font-black ${textMain}`}>Appearance</h2>
+              </div>
+
+              <div className={`flex items-center justify-between p-4 rounded-2xl mb-4 ${dm ? "bg-white/5" : "bg-slate-50"}`}>
+                <div>
+                  <p className={`font-bold text-sm ${textMain}`}>Dark Mode</p>
+                  <p className={`text-xs mt-0.5 ${textSub}`}>Reduce eye strain in low light</p>
+                </div>
+                <Toggle value={dm} onChange={setDarkMode} />
+              </div>
+
+              <div>
+                <p className={`text-sm font-bold mb-3 ${textMain}`}>Accent Color</p>
+                <div className="flex gap-3">
+                  {themeColors.map((c) => (
+                    <button key={c.id} onClick={() => setThemeColor(c.id)}
+                      className={`w-10 h-10 rounded-2xl ${c.bg} transition-all duration-200 ${
+                        themeColor === c.id
+                          ? `ring-4 ring-offset-2 ${c.ring} scale-110 ${dm ? "ring-offset-[#0f172a]" : "ring-offset-white"}`
+                          : "opacity-50 hover:opacity-80 hover:scale-105"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* NOTIFICATIONS */}
+            <div className={`${card} rounded-[28px] p-6`}>
+              <div className="flex items-center gap-3 mb-6">
+                <div className={`w-9 h-9 rounded-2xl flex items-center justify-center ${dm ? "bg-white/10" : "bg-slate-100"}`}>
+                  <FiBell className={textSub} size={17} />
+                </div>
+                <h2 className={`text-base font-black ${textMain}`}>Notifications</h2>
+              </div>
+
+              <div className="space-y-1">
+                {[
+                  { label: "Exam Reminders", desc: "Get notified 2 days before upcoming exams", value: notifExams, onChange: setNotifExams },
+                  { label: "Task Deadlines", desc: "Alerts for tasks that are due soon", value: notifTasks, onChange: setNotifTasks },
+                  { label: "Focus Session Complete", desc: "Notify when a Pomodoro session ends", value: notifFocus, onChange: setNotifFocus },
+                ].map((item, i, arr) => (
+                  <div key={item.label}>
+                    <div className="flex items-center justify-between py-4 px-1">
+                      <div>
+                        <p className={`font-bold text-sm ${textMain}`}>{item.label}</p>
+                        <p className={`text-xs mt-0.5 ${textSub}`}>{item.desc}</p>
+                      </div>
+                      <Toggle value={item.value} onChange={item.onChange} />
+                    </div>
+                    {i < arr.length - 1 && <div className={`h-px ${dm ? "bg-white/5" : "bg-slate-100"}`} />}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* PRIVACY */}
+            <div className={`${card} rounded-[28px] p-6`}>
+              <div className="flex items-center gap-3 mb-6">
+                <div className={`w-9 h-9 rounded-2xl flex items-center justify-center ${dm ? "bg-white/10" : "bg-slate-100"}`}>
+                  <FiShield className={textSub} size={17} />
+                </div>
+                <h2 className={`text-base font-black ${textMain}`}>Privacy & Security</h2>
+              </div>
+              <div className="space-y-1">
+                {["Change Password", "Two-Factor Authentication", "Download My Data"].map((item) => (
+                  <button key={item}
+                    className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all ${dm ? "hover:bg-white/5" : "hover:bg-slate-50"}`}>
+                    <span className={`text-sm font-semibold ${textMain}`}>{item}</span>
+                    <FiChevronRight className={textSub} size={16} />
                   </button>
-                  <button onClick={() => setShowLogoutModal(true)} className={`px-6 py-3.5 font-bold rounded-2xl border transition-all hover:-translate-y-0.5 flex items-center gap-2 ${darkMode ? "border-red-500/30 text-red-400 hover:bg-red-500/10" : "border-red-200 text-red-500 hover:bg-red-50"}`}>
-                    <FiLogOut /> Log Out
-                  </button>
-                </div>
+                ))}
               </div>
+            </div>
 
-              {/* RIGHT COLUMN: Appearance */}
-              <div className={`p-8 rounded-3xl border transition-colors duration-500 h-fit ${
-                darkMode ? "bg-[#1e293b]/50 border-white/10" : "bg-white border-slate-100 shadow-xl shadow-slate-200/40"
-              }`}>
-                <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                  <FiSun className="text-orange-500" /> Appearance
-                </h3>
-                
-                <div className="flex items-center justify-between mb-8 p-4 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                  <div>
-                    <p className="font-bold text-base flex items-center gap-2">
-                      {darkMode ? <FiMoon className="text-blue-400"/> : <FiSun className="text-orange-400"/>} Dark Mode
-                    </p>
-                    <p className={`text-xs mt-1 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Reduce eye strain in low light.</p>
-                  </div>
-                  <ToggleSwitch checked={darkMode} onChange={() => setDarkMode(!darkMode)} />
-                </div>
-
-                <div className="px-4">
-                  <p className="font-bold text-sm mb-4">Theme Color</p>
-                  <div className="flex gap-5">
-                    {themeColors.map((theme) => (
-                      <button 
-                        key={theme.name}
-                        onClick={() => setSelectedTheme(theme.name)} 
-                        className={`w-10 h-10 rounded-full ${theme.color} transition-all ${selectedTheme === theme.name ? `ring-4 ring-offset-4 ring-offset-transparent shadow-lg scale-110 ${theme.ring}` : 'opacity-50 hover:opacity-100 hover:scale-105'}`}
-                      ></button>
-                    ))}
-                  </div>
-                </div>
+            {/* APP INFO */}
+            <div className={`${card} rounded-[28px] p-5 flex items-center justify-between`}>
+              <div>
+                <p className={`text-sm font-bold ${textMain}`}>StudyPlanner</p>
+                <p className={`text-xs ${textSub}`}>Version 1.0.0 · Built with React + Tailwind</p>
               </div>
-            </>
-          )}
-
-          {/* ================= FOCUS TAB ================= */}
-          {activeTab === "focus" && (
-            <>
-              {/* LEFT COLUMN: Pomodoro Settings */}
-              <div className={`p-8 rounded-3xl border transition-colors duration-500 ${
-                darkMode ? "bg-[#1e293b]/50 border-white/10" : "bg-white border-slate-100 shadow-xl shadow-slate-200/40"
-              }`}>
-                <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                  <FiClock className="text-blue-500" /> Timer Settings
-                </h3>
-                
-                <div className="space-y-6 mb-8">
-                  <div className="flex items-center justify-between">
-                    <label className="font-bold text-sm">Study Duration (min)</label>
-                    <input 
-                      type="number" 
-                      value={studyDuration} 
-                      onChange={(e) => setStudyDuration(e.target.value)}
-                      className={`w-20 px-3 py-2 rounded-xl border text-center font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        darkMode ? "bg-slate-800 border-slate-700" : "bg-slate-50 border-slate-200"
-                      }`} 
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <label className="font-bold text-sm">Short Break (min)</label>
-                    <input 
-                      type="number" 
-                      value={breakDuration} 
-                      onChange={(e) => setBreakDuration(e.target.value)}
-                      className={`w-20 px-3 py-2 rounded-xl border text-center font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        darkMode ? "bg-slate-800 border-slate-700" : "bg-slate-50 border-slate-200"
-                      }`} 
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <label className="font-bold text-sm">Long Break (min)</label>
-                    <input 
-                      type="number" 
-                      value={longBreakDuration} 
-                      onChange={(e) => setLongBreakDuration(e.target.value)}
-                      className={`w-20 px-3 py-2 rounded-xl border text-center font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        darkMode ? "bg-slate-800 border-slate-700" : "bg-slate-50 border-slate-200"
-                      }`} 
-                    />
-                  </div>
-                </div>
-
-                <div className={`h-px w-full my-6 ${darkMode ? "bg-white/5" : "bg-slate-100"}`}></div>
-
-                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                  <FiPlayCircle className="text-blue-500" /> Automation
-                </h3>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <div>
-                      <p className="font-bold text-sm">Auto-start Breaks</p>
-                      <p className={`text-xs mt-1 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Start break automatically when study ends.</p>
-                    </div>
-                    <ToggleSwitch checked={autoStartBreak} onChange={() => setAutoStartBreak(!autoStartBreak)} />
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <div>
-                      <p className="font-bold text-sm">Auto-start Sessions</p>
-                      <p className={`text-xs mt-1 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Start study automatically when break ends.</p>
-                    </div>
-                    <ToggleSwitch checked={autoStartSession} onChange={() => setAutoStartSession(!autoStartSession)} />
-                  </div>
-                </div>
+              <div className={`text-xs px-3 py-1.5 rounded-xl font-semibold ${dm ? "bg-white/10 text-slate-400" : "bg-slate-100 text-slate-500"}`}>
+                Up to date
               </div>
-
-              {/* RIGHT COLUMN: Notifications & Sound */}
-              <div className={`p-8 rounded-3xl border transition-colors duration-500 h-fit ${
-                darkMode ? "bg-[#1e293b]/50 border-white/10" : "bg-white border-slate-100 shadow-xl shadow-slate-200/40"
-              }`}>
-                <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                  <FiBell className="text-red-500" /> Notifications & Sound
-                </h3>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between p-4 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <div>
-                      <p className="font-bold text-sm flex items-center gap-2"><FiCalendar /> Exam Reminders</p>
-                      <p className={`text-xs mt-1 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Get notified 2 days before exams.</p>
-                    </div>
-                    <ToggleSwitch checked={notifExams} onChange={() => setNotifExams(!notifExams)} />
-                  </div>
-
-                  <div className={`h-px w-full my-2 ${darkMode ? "bg-white/5" : "bg-slate-100"}`}></div>
-
-                  <div className="flex items-center justify-between p-4 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <div>
-                      <p className="font-bold text-sm flex items-center gap-2"><FiCheckSquare /> Task Alerts</p>
-                      <p className={`text-xs mt-1 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Reminders for approaching deadlines.</p>
-                    </div>
-                    <ToggleSwitch checked={notifTasks} onChange={() => setNotifTasks(!notifTasks)} />
-                  </div>
-
-                  <div className={`h-px w-full my-2 ${darkMode ? "bg-white/5" : "bg-slate-100"}`}></div>
-
-                  <div className="flex items-center justify-between p-4 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <div>
-                      <p className="font-bold text-sm flex items-center gap-2"><FiVolume2 /> Timer Sound</p>
-                      <p className={`text-xs mt-1 ${darkMode ? "text-slate-400" : "text-slate-500"}`}>Play sound when timer finishes.</p>
-                    </div>
-                    <ToggleSwitch checked={soundEnabled} onChange={() => setSoundEnabled(!soundEnabled)} />
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* LOGOUT CONFIRMATION MODAL */}
+      {/* SIGN OUT MODAL */}
       {showLogoutModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md transition-all">
-          <div className={`w-full max-w-sm p-8 rounded-3xl shadow-2xl transform scale-100 animate-in fade-in zoom-in-95 duration-200 ${
-            darkMode ? "bg-slate-800 border border-slate-700 text-white" : "bg-white border border-slate-100 text-slate-900"
-          }`}>
-            <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 flex items-center justify-center mb-6 mx-auto">
-              <FiLogOut size={28} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className={`w-full max-w-sm p-8 rounded-[28px] shadow-2xl border ${dm ? "bg-[#1a1f35] border-white/10 text-white" : "bg-white border-slate-100 text-slate-900"}`}>
+            <div className="w-14 h-14 rounded-3xl bg-red-100 flex items-center justify-center mb-5">
+              <FiLogOut className="text-red-500" size={24} />
             </div>
-            <h3 className="text-2xl font-bold mb-2 text-center">Log Out</h3>
-            <p className={`mb-8 text-center text-sm ${darkMode ? "text-slate-400" : "text-slate-500"}`}>
-              Are you sure you want to log out?
-            </p>
+            <h3 className="text-2xl font-black mb-2">Sign Out</h3>
+            <p className={`mb-7 text-sm ${textSub}`}>Are you sure you want to sign out of your account?</p>
             <div className="flex gap-3">
-              <button onClick={() => setShowLogoutModal(false)} className={`flex-1 py-3 font-bold rounded-xl transition-colors ${darkMode ? "bg-slate-700 hover:bg-slate-600 text-slate-200" : "bg-slate-100 hover:bg-slate-200 text-slate-700"}`}>
+              <button onClick={() => setShowLogoutModal(false)}
+                className={`flex-1 py-3 font-bold rounded-2xl text-sm ${dm ? "bg-white/10 text-slate-300 hover:bg-white/20" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
                 Cancel
               </button>
-              <button onClick={handleLogOut} className="flex-1 py-3 font-bold rounded-xl bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/30 transition-colors">
-                Log Out
+              <button onClick={() => setShowLogoutModal(false)}
+                className="flex-1 py-3 font-bold rounded-2xl text-sm bg-red-500 hover:bg-red-600 text-white shadow-lg transition-all hover:scale-[1.02]">
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE MODAL */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className={`w-full max-w-sm p-8 rounded-[28px] shadow-2xl border ${dm ? "bg-[#1a1f35] border-white/10 text-white" : "bg-white border-slate-100 text-slate-900"}`}>
+            <div className="w-14 h-14 rounded-3xl bg-red-100 flex items-center justify-center mb-5">
+              <FiAlertTriangle className="text-red-500" size={24} />
+            </div>
+            <h3 className="text-2xl font-black mb-2">Delete Account</h3>
+            <p className={`mb-7 text-sm ${textSub}`}>This action is permanent and cannot be undone. All your data will be lost.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowDeleteModal(false)}
+                className={`flex-1 py-3 font-bold rounded-2xl text-sm ${dm ? "bg-white/10 text-slate-300 hover:bg-white/20" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
+                Cancel
+              </button>
+              <button onClick={() => setShowDeleteModal(false)}
+                className="flex-1 py-3 font-bold rounded-2xl text-sm bg-red-500 hover:bg-red-600 text-white shadow-lg transition-all hover:scale-[1.02]">
+                Delete
               </button>
             </div>
           </div>
