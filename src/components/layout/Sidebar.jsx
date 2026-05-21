@@ -13,7 +13,6 @@ import {
 function Sidebar({ page, setPage, isOpen, setIsOpen, darkMode, tasks }) {
   const dm = darkMode;
 
-  // Gerçek productivity hesaplama
   const total = tasks?.length || 0;
   const completed = tasks?.filter((t) => t.completed).length || 0;
   const productivity = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -23,7 +22,6 @@ function Sidebar({ page, setPage, isOpen, setIsOpen, darkMode, tasks }) {
     { id: "tasks", label: "Tasks", icon: FiCheckSquare, activeColor: "group-hover:text-green-500" },
     { id: "courses", label: "Courses", icon: FiBookOpen, activeColor: "group-hover:text-purple-500" },
     { id: "exams", label: "Exams", icon: FiCalendar, activeColor: "group-hover:text-orange-500" },
-    { id: "analytics", label: "Analytics", icon: FiBarChart2, activeColor: "group-hover:text-indigo-500" },
   ];
 
   const handleNav = (id) => {
@@ -47,7 +45,6 @@ function Sidebar({ page, setPage, isOpen, setIsOpen, darkMode, tasks }) {
 
   return (
     <>
-      {/* OVERLAY */}
       {isOpen && (
         <div
           className="fixed inset-0 z-30 bg-black/30 backdrop-blur-sm"
@@ -55,7 +52,6 @@ function Sidebar({ page, setPage, isOpen, setIsOpen, darkMode, tasks }) {
         />
       )}
 
-      {/* SIDEBAR */}
       <aside
         className={`fixed top-0 left-0 z-40 h-screen flex flex-col px-5 py-5 overflow-y-auto
           transition-transform duration-300 ease-in-out
@@ -125,7 +121,7 @@ function Sidebar({ page, setPage, isOpen, setIsOpen, darkMode, tasks }) {
         {/* INFO CARDS */}
         <div className="mt-6 space-y-3">
 
-          {/* PRODUCTIVITY — tıklanabilir, gerçek veri */}
+          {/* ANALYTİCS KARTI (eskiden Productivity) */}
           <button
             onClick={() => handleNav("analytics")}
             className={`w-full rounded-3xl p-4 border text-left hover:scale-[1.02] transition-all duration-300 ${
@@ -136,7 +132,7 @@ function Sidebar({ page, setPage, isOpen, setIsOpen, darkMode, tasks }) {
           >
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className={`text-xs ${dm ? "text-slate-400" : "text-slate-500"}`}>Productivity</p>
+                <p className={`text-xs ${dm ? "text-slate-400" : "text-slate-500"}`}>Analytics</p>
                 <h3 className={`text-xl font-bold mt-0.5 ${productivityTextColor}`}>
                   {productivity}%
                 </h3>
