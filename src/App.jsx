@@ -1,26 +1,49 @@
 import { useState, useEffect, useRef } from "react";
 import { FiMenu } from "react-icons/fi";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { auth } from "./firebase";
 
-import Analytics from "./pages/Analytics";
-import Settings from "./pages/Settings";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Sidebar from "./components/layout/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
 import Courses from "./pages/Courses";
 import Exams from "./pages/Exams";
 import Focus from "./pages/focus";
+import Analytics from "./pages/Analytics";
+import Settings from "./pages/Settings";
 
 const POMODORO_TIME = 25 * 60;
 const BREAK_TIME = 5 * 60;
 const LONG_BREAK_TIME = 15 * 60;
 
 function App() {
+  /* ── AUTH ── */
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true); // Firebase kontrol ederken bekle
+  const [authScreen, setAuthScreen] = useState("login"); // "login" | "register"
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {  
+      setUser(firebaseUser);
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    await signOut(auth);
+    setUser(null);
+  };
+
+  /* ── APP STATE ── */
   const [page, setPage] = useState("dashboard");
   const [darkMode, setDarkMode] = useState(false);
-  const [taskFilter, setTaskFilter] = useState("all");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [taskFilter, setTaskFilter] = useState("all");
 
-  /* ── SETTINGS STATE — App seviyesinde, localStorage'a kaydedilir ── */
+  /* ── SETTINGS STATE ── */
   const [userName, setUserName] = useState(() => localStorage.getItem("userName") || "Alex Johnson");
   const [userEmail, setUserEmail] = useState(() => localStorage.getItem("userEmail") || "alex.johnson@email.com");
   const [themeColor, setThemeColor] = useState(() => localStorage.getItem("themeColor") || "blue");
@@ -35,7 +58,7 @@ function App() {
   useEffect(() => { localStorage.setItem("notifTasks", String(notifTasks)); }, [notifTasks]);
   useEffect(() => { localStorage.setItem("notifFocus", String(notifFocus)); }, [notifFocus]);
 
-  /* ── DATA STATE ── */
+  /* ── DATA ── */
   const [tasks, setTasks] = useState(() => JSON.parse(localStorage.getItem("tasks")) || []);
   const [exams, setExams] = useState(() => JSON.parse(localStorage.getItem("exams")) || []);
   const [courses, setCourses] = useState(() => JSON.parse(localStorage.getItem("courses")) || []);
@@ -44,7 +67,7 @@ function App() {
   useEffect(() => { localStorage.setItem("exams", JSON.stringify(exams)); }, [exams]);
   useEffect(() => { localStorage.setItem("courses", JSON.stringify(courses)); }, [courses]);
 
-  /* ── TIMER STATE ── */
+  /* ── TIMER ── */
   const [focusTime, setFocusTime] = useState(POMODORO_TIME);
   const [isRunning, setIsRunning] = useState(false);
   const [timerMode, setTimerMode] = useState("Focus");
@@ -117,23 +140,48 @@ function App() {
     notifExams, setNotifExams,
     notifTasks, setNotifTasks,
     notifFocus, setNotifFocus,
+    onSignOut: handleSignOut,
   };
 
+  /* ── AUTH LOADING SCREEN ── */
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="absolute inset-0 bg-blue-400 blur-2xl opacity-30 rounded-full" />
+            <img src="/icon.png" alt="logo" className="relative w-16 h-16 rounded-3xl shadow-2xl" />
+          </div>
+          <div className="flex gap-1.5">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="w-2 h-2 rounded-full bg-blue-500 animate-bounce"
+                style={{ animationDelay: `${i * 0.15}s` }} />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── NOT LOGGED IN → show auth ── */
+  if (!user) {
+    if (authScreen === "register") {
+      return <Register onSwitchToLogin={() => setAuthScreen("login")} />;
+    }
+    return <Login onSwitchToRegister={() => setAuthScreen("register")} />;
+  }
+
+  /* ── LOGGED IN → show app ── */
   const renderPage = () => {
     if (page === "dashboard") return (
-      <Dashboard
-        tasks={tasks} setTasks={setTasks}
-        exams={exams} courses={courses}
+      <Dashboard tasks={tasks} setTasks={setTasks} exams={exams} courses={courses}
         setPage={setPage} setTaskFilter={setTaskFilter}
-        darkMode={darkMode} setDarkMode={setDarkMode}
-      />
+        darkMode={darkMode} setDarkMode={setDarkMode} />
     );
     if (page === "tasks") return (
-      <Tasks
-        tasks={tasks} setTasks={setTasks}
+      <Tasks tasks={tasks} setTasks={setTasks}
         taskFilter={taskFilter} setTaskFilter={setTaskFilter}
-        darkMode={darkMode}
-      />
+        darkMode={darkMode} />
     );
     if (page === "courses") return (
       <Courses courses={courses} setCourses={setCourses} darkMode={darkMode} />
@@ -144,20 +192,13 @@ function App() {
     if (page === "focus") return (
       <Focus darkMode={darkMode} setDarkMode={setDarkMode} focusProps={focusProps} />
     );
+    if (page === "analytics") return (
+      <Analytics tasks={tasks} courses={courses} exams={exams}
+        focusHours={focusHours} sessions={sessions} darkMode={darkMode} />
+    );
     if (page === "settings") return (
       <Settings darkMode={darkMode} setDarkMode={setDarkMode} settingsProps={settingsProps} />
     );
-
-    if (page === "analytics") return (
-  <Analytics
-    tasks={tasks}
-    courses={courses}
-    exams={exams}
-    focusHours={focusHours}
-    sessions={sessions}
-    darkMode={darkMode}
-  />
-);
   };
 
   return (
@@ -166,6 +207,7 @@ function App() {
         ? "bg-gradient-to-br from-[#0f172a] via-[#081028] to-[#020617]"
         : "bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100"
     }`}>
+      {/* HAMBURGER */}
       <button
         onClick={() => setSidebarOpen(true)}
         className={`fixed top-5 left-5 z-50 w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg transition-all hover:scale-105 ${
@@ -178,7 +220,7 @@ function App() {
       <Sidebar
         page={page} setPage={setPage}
         isOpen={sidebarOpen} setIsOpen={setSidebarOpen}
-        darkMode={darkMode}
+        darkMode={darkMode} tasks={tasks}
       />
 
       <main className="min-h-screen p-8 pt-20">

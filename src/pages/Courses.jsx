@@ -1,6 +1,18 @@
 import { useState } from "react";
 import { FiBookOpen, FiTrash2, FiPlus } from "react-icons/fi";
 
+// Sabit string map — Tailwind dynamic class sorunu önlenir
+const COLOR_MAP = {
+  blue:   { gradient: "from-blue-500 to-indigo-600",    btn: "bg-blue-500",    ring: "ring-blue-400" },
+  purple: { gradient: "from-purple-500 to-fuchsia-600", btn: "bg-purple-500",  ring: "ring-purple-400" },
+  green:  { gradient: "from-green-500 to-emerald-600",  btn: "bg-green-500",   ring: "ring-green-400" },
+  red:    { gradient: "from-red-500 to-rose-600",       btn: "bg-red-500",     ring: "ring-red-400" },
+  orange: { gradient: "from-orange-500 to-amber-600",   btn: "bg-orange-500",  ring: "ring-orange-400" },
+  pink:   { gradient: "from-pink-500 to-rose-500",      btn: "bg-pink-500",    ring: "ring-pink-400" },
+};
+
+const COLORS = Object.keys(COLOR_MAP);
+
 function Courses({ courses, setCourses, darkMode }) {
   const [name, setName] = useState("");
   const [semester, setSemester] = useState("");
@@ -9,112 +21,168 @@ function Courses({ courses, setCourses, darkMode }) {
   const dm = darkMode;
 
   const addCourse = () => {
-    if (!name || !semester) return;
-    setCourses([...courses, { id: Date.now(), name, semester, color: selectedColor }]);
-    setName(""); setSemester(""); setSelectedColor("blue");
+    if (!name.trim() || !semester.trim()) return;
+    setCourses([...courses, {
+      id: Date.now(),
+      name: name.trim(),
+      semester: semester.trim(),
+      color: selectedColor,
+    }]);
+    setName("");
+    setSemester("");
+    setSelectedColor("blue");
   };
 
-  const deleteCourse = (id) => setCourses(courses.filter((c) => c.id !== id));
+  const deleteCourse = (id) =>
+    setCourses(courses.filter((c) => c.id !== id));
 
-  const getCardColor = (color) => {
-    const map = {
-      blue: "from-blue-500 to-indigo-600",
-      purple: "from-purple-500 to-fuchsia-600",
-      green: "from-green-500 to-emerald-600",
-      red: "from-red-500 to-rose-600",
-      orange: "from-orange-500 to-amber-600",
-      pink: "from-pink-500 to-rose-500",
-    };
-    return map[color] || "from-blue-500 to-indigo-600";
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") addCourse();
   };
 
-  const cardForm = dm ? "bg-[#1a1f35] border border-white/5" : "bg-white/70 backdrop-blur-xl border border-white/40";
-  const input = dm
-    ? "bg-white/5 border border-white/10 text-white placeholder-slate-500 rounded-2xl px-5 py-4 outline-none focus:ring-4 focus:ring-purple-500/20 focus:border-purple-400 transition-all"
-    : "bg-white border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:ring-4 focus:ring-purple-100 transition-all";
+  const cardBg = dm ? "bg-[#1a1f35] border border-white/5" : "bg-white border border-slate-100 shadow-sm";
+  const inputCls = dm
+    ? "w-full bg-white/5 border border-white/10 text-white placeholder-slate-500 rounded-2xl px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-purple-500/20 focus:border-purple-400 transition-all"
+    : "w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-purple-100 focus:border-purple-300 transition-all text-slate-900";
   const textMain = dm ? "text-white" : "text-slate-900";
-  const textSub = dm ? "text-slate-400" : "text-slate-500";
+  const textSub  = dm ? "text-slate-400" : "text-slate-500";
+  const textMuted = dm ? "text-slate-500" : "text-slate-400";
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-7">
 
       {/* HEADER */}
       <div>
-        <h1 className={`text-5xl font-extrabold ${textMain}`}>Courses</h1>
-        <p className={`mt-3 text-lg ${textSub}`}>Manage your study subjects beautifully.</p>
+        <h1 className={`text-4xl font-black ${textMain}`}>Courses</h1>
+        <p className={`mt-1 ${textSub}`}>Manage your study subjects beautifully.</p>
       </div>
 
-      {/* ADD COURSE */}
-      <div className={`${cardForm} rounded-[32px] p-8 shadow-xl`}>
-        <div className="flex items-center justify-between mb-8">
+      {/* ADD COURSE FORM */}
+      <div className={`${cardBg} rounded-[28px] p-6`}>
+        <div className="flex items-center justify-between mb-5">
           <div>
-            <h2 className={`text-3xl font-bold ${textMain}`}>Add New Course</h2>
-            <p className={`mt-1 ${textSub}`}>Create a new subject workspace</p>
+            <h2 className={`text-xl font-black ${textMain}`}>Add New Course</h2>
+            <p className={`text-sm mt-0.5 ${textSub}`}>Create a new subject workspace</p>
           </div>
-          <div className={`w-16 h-16 rounded-3xl flex items-center justify-center ${dm ? "bg-purple-500/20" : "bg-purple-100"}`}>
-            <FiPlus className={dm ? "text-purple-400" : "text-purple-600"} size={28} />
+          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${dm ? "bg-purple-500/20" : "bg-purple-100"}`}>
+            <FiPlus className={dm ? "text-purple-400" : "text-purple-600"} size={20} />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <input type="text" placeholder="Course name" value={name} onChange={(e) => setName(e.target.value)} className={input} />
-          <input type="text" placeholder="Semester" value={semester} onChange={(e) => setSemester(e.target.value)} className={input} />
+        {/* INPUTS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+          <input
+            type="text"
+            placeholder="Course name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className={inputCls}
+          />
+          <input
+            type="text"
+            placeholder="Semester (e.g. Spring 2026)"
+            value={semester}
+            onChange={(e) => setSemester(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className={inputCls}
+          />
         </div>
 
         {/* COLOR PICKER */}
-        <div className="mt-8">
-          <p className={`font-semibold mb-4 ${textMain}`}>Choose Course Color</p>
-          <div className="flex gap-3 flex-wrap">
-            {["blue", "purple", "green", "red", "orange", "pink"].map((color) => (
-              <button key={color} type="button" onClick={() => setSelectedColor(color)}
-                className={`w-12 h-12 rounded-2xl transition-all duration-300 border-4
-                  ${color === "blue" && "bg-blue-500"}
-                  ${color === "purple" && "bg-purple-500"}
-                  ${color === "green" && "bg-green-500"}
-                  ${color === "red" && "bg-red-500"}
-                  ${color === "orange" && "bg-orange-500"}
-                  ${color === "pink" && "bg-pink-500"}
-                  ${selectedColor === color ? "scale-110 border-white shadow-2xl" : "border-transparent opacity-80 hover:scale-105"}
-                `}
-              />
-            ))}
+        <div className="mb-5">
+          <p className={`text-xs font-bold uppercase tracking-widest mb-3 ${textMuted}`}>
+            Choose Color
+          </p>
+          <div className="flex gap-2.5 flex-wrap">
+            {COLORS.map((color) => {
+              const active = selectedColor === color;
+              return (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => setSelectedColor(color)}
+                  className={[
+                    "w-9 h-9 rounded-xl transition-all duration-200",
+                    COLOR_MAP[color].btn,
+                    active
+                      ? `scale-110 ring-4 ring-offset-2 ${COLOR_MAP[color].ring} ${dm ? "ring-offset-[#1a1f35]" : "ring-offset-white"} shadow-lg`
+                      : "opacity-50 hover:opacity-80 hover:scale-105",
+                  ].join(" ")}
+                />
+              );
+            })}
           </div>
         </div>
 
-        <button onClick={addCourse} className="mt-8 bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-7 py-4 rounded-2xl font-bold shadow-xl hover:scale-[1.02] transition-all duration-300">
+        {/* SUBMIT */}
+        <button
+          onClick={addCourse}
+          className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-6 py-3 rounded-2xl font-bold text-sm shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+        >
           Add Course
         </button>
       </div>
 
-      {/* COURSE LIST */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {courses.length === 0 ? (
-          <div className={`${dm ? "bg-[#1a1f35] border border-white/5" : "bg-white"} rounded-3xl p-10 text-center shadow-sm col-span-full`}>
-            <p className={`text-lg ${textSub}`}>No courses added 📚</p>
+      {/* COURSE GRID */}
+      {courses.length === 0 ? (
+        <div className={`${cardBg} rounded-[28px] p-12 text-center`}>
+          <div className={`w-16 h-16 rounded-3xl mx-auto mb-4 flex items-center justify-center ${dm ? "bg-white/5" : "bg-slate-100"}`}>
+            <FiBookOpen size={26} className={textMuted} />
           </div>
-        ) : (
-          courses.map((course) => (
-            <div key={course.id}
-              className={`bg-gradient-to-br ${getCardColor(course.color)} rounded-[36px] p-6 text-white shadow-2xl hover:scale-[1.02] transition-all duration-300 relative overflow-hidden`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="w-16 h-16 rounded-3xl bg-white/20 flex items-center justify-center backdrop-blur-md">
-                  <FiBookOpen size={30} />
+          <p className={`text-lg font-bold ${textMain}`}>No courses yet</p>
+          <p className={`text-sm mt-1 ${textSub}`}>Add your first course above 📚</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+          {courses.map((course) => {
+            const c = COLOR_MAP[course.color] || COLOR_MAP.blue;
+            return (
+              <div
+                key={course.id}
+                className={[
+                  "group relative rounded-[28px] overflow-hidden",
+                  "hover:scale-[1.03] hover:shadow-2xl",
+                  "transition-all duration-300",
+                  `bg-gradient-to-br ${c.gradient}`,
+                ].join(" ")}
+                style={{ aspectRatio: "1 / 1" }}
+              >
+                {/* CONTENT */}
+                <div className="absolute inset-0 flex flex-col justify-between p-5">
+
+                  {/* TOP ROW */}
+                  <div className="flex items-start justify-between">
+                    <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+                      <FiBookOpen className="text-white" size={18} />
+                    </div>
+                    <button
+                      onClick={() => deleteCourse(course.id)}
+                      className="w-8 h-8 rounded-xl bg-black/20 hover:bg-red-500 flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
+                    >
+                      <FiTrash2 className="text-white" size={13} />
+                    </button>
+                  </div>
+
+                  {/* BOTTOM */}
+                  <div>
+                    <h2 className="text-base font-black text-white leading-tight mb-2 line-clamp-2">
+                      {course.name}
+                    </h2>
+                    <span className="inline-flex text-xs font-semibold text-white/80 bg-black/20 backdrop-blur-sm px-2.5 py-1 rounded-xl">
+                      {course.semester}
+                    </span>
+                  </div>
                 </div>
-                <button onClick={() => deleteCourse(course.id)}
-                  className="w-12 h-12 rounded-2xl bg-white/20 hover:bg-red-500 transition-all flex items-center justify-center"
-                ><FiTrash2 size={20} /></button>
+
+                {/* Decorative circle */}
+                <div className="absolute -top-8 -right-8 w-28 h-28 rounded-full bg-white/10 pointer-events-none" />
+                <div className="absolute -bottom-6 -left-6 w-20 h-20 rounded-full bg-black/10 pointer-events-none" />
               </div>
-              <div className="mt-10">
-                <h2 className="text-4xl font-bold tracking-tight">{course.name}</h2>
-                <div className="mt-6 inline-flex px-4 py-2 rounded-2xl bg-white/20 text-white font-semibold backdrop-blur-md">
-                  {course.semester}
-                </div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
