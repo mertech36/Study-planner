@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import {
-  FiPlay, FiPause, FiRotateCcw, FiMusic, FiMaximize2,
+  FiPlay, FiPause, FiRotateCcw, FiMusic, FiMaximize2, FiMinimize2,
   FiZap, FiClock, FiVolume2, FiPlusCircle, FiCoffee,
   FiEdit3, FiTrash2, FiX, FiCheck, FiSkipForward,
 } from "react-icons/fi";
@@ -10,7 +10,6 @@ function Confetti({ active }) {
   const canvasRef = useRef(null);
   const animRef = useRef(null);
   const particles = useRef([]);
-
   useEffect(() => {
     if (!active) return;
     const canvas = canvasRef.current;
@@ -41,7 +40,6 @@ function Confetti({ active }) {
     animRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(animRef.current);
   }, [active]);
-
   if (!active) return null;
   return <canvas ref={canvasRef} className="fixed inset-0 z-40 pointer-events-none" />;
 }
@@ -49,7 +47,6 @@ function Confetti({ active }) {
 /* ─── MODAL ─── */
 function Modal({ isOpen, title, fields, onConfirm, onCancel, darkMode }) {
   const [values, setValues] = useState({});
-
   useEffect(() => {
     if (isOpen) {
       const initial = {};
@@ -57,10 +54,8 @@ function Modal({ isOpen, title, fields, onConfirm, onCancel, darkMode }) {
       setValues(initial);
     }
   }, [isOpen]);
-
   if (!isOpen) return null;
   const dm = darkMode;
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
@@ -101,26 +96,92 @@ function Modal({ isOpen, title, fields, onConfirm, onCancel, darkMode }) {
 }
 
 /* ─── CIRCULAR TIMER ─── */
-function CircularTimer({ minutes, seconds, currentTotal }) {
-  const radius = 130;
+function CircularTimer({ minutes, seconds, currentTotal, size = 320 }) {
+  const radius = size === 320 ? 130 : 160;
   const circumference = 2 * Math.PI * radius;
   const remaining = minutes * 60 + seconds;
   const progress = currentTotal > 0 ? 1 - remaining / currentTotal : 0;
   const dashOffset = circumference * (1 - progress);
+  const cx = size / 2;
+  const cy = size / 2;
   return (
-    <svg width="320" height="320">
+    <svg width={size} height={size}>
       <defs>
         <linearGradient id="timerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#a855f7" />
           <stop offset="100%" stopColor="#6366f1" />
         </linearGradient>
       </defs>
-      <circle cx="160" cy="160" r={radius} fill="none" stroke="rgba(148,163,184,0.2)" strokeWidth="12" />
-      <circle cx="160" cy="160" r={radius} fill="none" stroke="url(#timerGrad)" strokeWidth="12" strokeLinecap="round"
-        strokeDasharray={circumference} strokeDashoffset={dashOffset} transform="rotate(-90 160 160)"
+      <circle cx={cx} cy={cy} r={radius} fill="none" stroke="rgba(148,163,184,0.2)" strokeWidth="12" />
+      <circle cx={cx} cy={cy} r={radius} fill="none" stroke="url(#timerGrad)" strokeWidth="12" strokeLinecap="round"
+        strokeDasharray={circumference} strokeDashoffset={dashOffset}
+        transform={`rotate(-90 ${cx} ${cy})`}
         style={{ transition: "stroke-dashoffset 1s linear" }}
       />
     </svg>
+  );
+}
+
+/* ─── TIMER OVERLAY ─── */
+function TimerOverlay({ isOpen, onClose, minutes, seconds, currentTotal, timerMode, isRunning, onStart, onPause, onReset, onSkip, onFocus, onBreak, onLongBreak, darkMode, completedDots, modeLabel }) {
+  if (!isOpen) return null;
+  const dm = darkMode;
+  const formatTime = (t) => t.toString().padStart(2, "0");
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      <div className={`absolute inset-0 ${dm ? "bg-[#0a0f1e]" : "bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100"}`} />
+      <button onClick={onClose}
+        className={`absolute top-6 right-6 w-12 h-12 rounded-2xl flex items-center justify-center z-10 transition-all hover:scale-105 ${dm ? "bg-white/10 text-white hover:bg-white/20" : "bg-white text-slate-700 shadow-md hover:bg-slate-50"}`}>
+        <FiMinimize2 size={20} />
+      </button>
+      <div className="relative flex flex-col items-center gap-8">
+        <div className="flex gap-2">
+          {[
+            { label: "Focus",      action: onFocus },
+            { label: "Break",      action: onBreak },
+            { label: "Long Break", action: onLongBreak },
+          ].map(({ label, action }) => (
+            <button key={label} onClick={action}
+              className={`px-5 py-2 rounded-xl font-semibold text-sm transition-all hover:scale-105 ${timerMode === label
+                ? "bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg"
+                : dm ? "bg-white/10 text-slate-400 hover:bg-white/20" : "bg-white/60 text-slate-500 hover:bg-white"
+              }`}
+            >{label}</button>
+          ))}
+        </div>
+        <div className="relative">
+          <CircularTimer minutes={minutes} seconds={seconds} currentTotal={currentTotal} size={400} />
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <p className={`text-base font-medium mb-2 ${dm ? "text-slate-400" : "text-slate-500"}`}>Focus Time</p>
+            <h1 className={`text-8xl font-black tabular-nums ${dm ? "text-white" : "text-slate-900"}`}>
+              {formatTime(minutes)}:{formatTime(seconds)}
+            </h1>
+            <p className="text-purple-400 font-semibold mt-3 text-base">{modeLabel}</p>
+          </div>
+        </div>
+        <div className="flex gap-5">
+          <button onClick={onReset}
+            className={`px-7 py-4 rounded-2xl font-bold flex items-center gap-2 text-base transition-all ${dm ? "bg-white/10 text-slate-300 hover:bg-white/20" : "bg-white text-slate-600 shadow-md hover:bg-slate-50"}`}>
+            <FiRotateCcw size={18} /> Reset
+          </button>
+          <button onClick={isRunning ? onPause : onStart}
+            className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-12 py-4 rounded-2xl font-bold flex items-center gap-2 shadow-xl hover:scale-105 transition-all text-base">
+            {isRunning ? <><FiPause size={18} /> Pause</> : <><FiPlay size={18} /> Start</>}
+          </button>
+          <button onClick={onSkip}
+            className={`px-7 py-4 rounded-2xl font-bold flex items-center gap-2 text-base transition-all ${dm ? "bg-white/10 text-slate-300 hover:bg-white/20" : "bg-white text-slate-600 shadow-md hover:bg-slate-50"}`}>
+            <FiSkipForward size={18} /> Skip
+          </button>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`text-sm ${dm ? "text-slate-500" : "text-slate-400"}`}>Focus</span>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className={`w-3.5 h-3.5 rounded-full transition-all ${i < completedDots ? "bg-purple-500" : dm ? "bg-white/15" : "bg-slate-300"}`} />
+          ))}
+          <span className={`text-sm ${dm ? "text-slate-500" : "text-slate-400"}`}>{completedDots}/4</span>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -145,6 +206,7 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
   const [modal, setModal] = useState({ isOpen: false, type: null, editIndex: null });
   const [confettiActive, setConfettiActive] = useState(false);
   const [goalReached, setGoalReached] = useState(false);
+  const [timerOverlay, setTimerOverlay] = useState(false);
   const prevGoalReached = useRef(false);
 
   const quotes = [
@@ -153,44 +215,12 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
     "Deep work creates deep results.", "Dreams need discipline.",
     "Success is built daily.", "One session at a time.",
     "Keep showing up.", "Progress over perfection.",
-    "You don't rise to the level of your goals, you fall to the level of your systems.",
-    "The secret of getting ahead is getting started.",
-    "It always seems impossible until it's done.",
-    "Don't watch the clock; do what it does. Keep going.",
-    "The harder you work, the luckier you get.",
-    "Push yourself, because no one else is going to do it for you.",
-    "Great things never come from comfort zones.", "Dream it. Wish it. Do it.",
-    "Success doesn't just find you. You have to go out and get it.",
-    "The key to success is to focus on goals, not obstacles.",
-    "Study now, flex later.", "Your future self is watching you right now.",
-    "Do something today that your future self will thank you for.",
-    "The pain of studying is temporary. The regret of not studying is permanent.",
-    "Every expert was once a beginner.",
-    "Work hard in silence, let success make the noise.",
-    "You are capable of more than you know.",
-    "Don't stop when you're tired. Stop when you're done.",
-    "Hard work is what separates the talented from the successful.",
-    "The difference between ordinary and extraordinary is that little extra.",
-    "Strive for progress, not perfection.",
-    "You don't have to be great to start, but you have to start to be great.",
-    "The only way to do great work is to love what you do.",
-    "Knowledge is power. Power is limitless.",
-    "An investment in knowledge pays the best interest.",
-    "Education is the passport to the future.",
-    "The more that you read, the more things you will know.",
-    "Learning never exhausts the mind.",
-    "The beautiful thing about learning is that no one can take it away from you.",
-    "Motivation gets you going, but discipline keeps you growing.",
-    "You are your only limit.",
-    "Rise up, start fresh, see the bright opportunity in each day.",
-    "Believe you can and you're halfway there.",
-    "Act as if what you do makes a difference. It does.",
-    "Success is the sum of small efforts repeated day in and day out.",
     "Hard work beats talent when talent doesn't work hard.",
     "It's not about having time. It's about making time.",
-    "Focus. Execute. Repeat.",
-    "Champions keep playing until they get it right.",
-    "One day or day one — you decide.",
+    "Focus. Execute. Repeat.", "One day or day one — you decide.",
+    "You are your only limit.", "An investment in knowledge pays the best interest.",
+    "The beautiful thing about learning is that no one can take it away from you.",
+    "Don't stop when you're tired. Stop when you're done.",
   ];
 
   const [quoteIndex] = useState(() => {
@@ -201,7 +231,6 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
   });
   const [quote] = useState(quotes[quoteIndex]);
 
-  // Goal check
   useEffect(() => {
     const focusMin = focusHours * 60;
     const reached = focusMin >= goalMinutes;
@@ -216,53 +245,22 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
 
   const formatTime = (t) => t.toString().padStart(2, "0");
 
-  /* ─── TIMER CONTROLS ─── */
-  const startTimer = () => setIsRunning(true);
-  const pauseTimer = () => { clearInterval(timerRef.current); setIsRunning(false); };
-
-  const resetTimer = () => {
-    clearInterval(timerRef.current);
-    setIsRunning(false);
-    setTimerMode("Focus");
-    setCurrentTotal(POMODORO_TIME);
-    setFocusTime(POMODORO_TIME);
-  };
-
-  const skipSession = () => {
-    clearInterval(timerRef.current);
-    setIsRunning(false);
-    setSessions((p) => p + 1);
-    setTimerMode("Focus");
-    setCurrentTotal(POMODORO_TIME);
-    setFocusTime(POMODORO_TIME);
-  };
-
-  const startBreak = () => {
-    clearInterval(timerRef.current);
-    setIsRunning(false);
-    setTimerMode("Break");
-    setCurrentTotal(BREAK_TIME);
-    setFocusTime(BREAK_TIME);
-  };
-
-  const startLongBreak = () => {
-    clearInterval(timerRef.current);
-    setIsRunning(false);
-    setTimerMode("Long Break");
-    setCurrentTotal(LONG_BREAK_TIME);
-    setFocusTime(LONG_BREAK_TIME);
-  };
+  const startTimer     = () => setIsRunning(true);
+  const pauseTimer     = () => { clearInterval(timerRef.current); setIsRunning(false); };
+  const resetTimer     = () => { clearInterval(timerRef.current); setIsRunning(false); setTimerMode("Focus"); setCurrentTotal(POMODORO_TIME); setFocusTime(POMODORO_TIME); };
+  const skipSession    = () => { clearInterval(timerRef.current); setIsRunning(false); setSessions((p) => p + 1); setTimerMode("Focus"); setCurrentTotal(POMODORO_TIME); setFocusTime(POMODORO_TIME); };
+  const startBreak     = () => { clearInterval(timerRef.current); setIsRunning(false); setTimerMode("Break"); setCurrentTotal(BREAK_TIME); setFocusTime(BREAK_TIME); };
+  const startLongBreak = () => { clearInterval(timerRef.current); setIsRunning(false); setTimerMode("Long Break"); setCurrentTotal(LONG_BREAK_TIME); setFocusTime(LONG_BREAK_TIME); };
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) document.documentElement.requestFullscreen();
     else document.exitFullscreen();
   };
 
-  /* ─── MODAL ─── */
-  const openAddSession = () => setModal({ isOpen: true, type: "addSession", editIndex: null });
+  const openAddSession  = () => setModal({ isOpen: true, type: "addSession",  editIndex: null });
   const openEditSession = (i) => setModal({ isOpen: true, type: "editSession", editIndex: i });
-  const openEditGoal = () => setModal({ isOpen: true, type: "editGoal", editIndex: null });
-  const closeModal = () => setModal({ isOpen: false, type: null, editIndex: null });
+  const openEditGoal    = () => setModal({ isOpen: true, type: "editGoal",    editIndex: null });
+  const closeModal      = () => setModal({ isOpen: false, type: null, editIndex: null });
 
   const handleModalConfirm = (values) => {
     if (modal.type === "addSession" && values.name && values.time)
@@ -284,30 +282,21 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
   const deleteSession = (i) => setSessionsList((prev) => prev.filter((_, idx) => idx !== i));
 
   const getModalProps = () => {
-    if (modal.type === "addSession") return {
-      title: "Add New Session",
-      fields: [
-        { key: "name", label: "Session Name", placeholder: "e.g. Mathematics" },
-        { key: "time", label: "Duration", placeholder: "e.g. 25:00", default: "25:00" },
-      ],
-    };
+    if (modal.type === "addSession") return { title: "Add New Session", fields: [
+      { key: "name", label: "Session Name", placeholder: "e.g. Mathematics" },
+      { key: "time", label: "Duration", placeholder: "e.g. 25:00", default: "25:00" },
+    ]};
     if (modal.type === "editSession") {
       const s = sessionsList[modal.editIndex] || {};
-      return {
-        title: "Edit Session",
-        fields: [
-          { key: "name", label: "Session Name", default: s.title },
-          { key: "time", label: "Duration", default: s.time },
-        ],
-      };
+      return { title: "Edit Session", fields: [
+        { key: "name", label: "Session Name", default: s.title },
+        { key: "time", label: "Duration", default: s.time },
+      ]};
     }
-    if (modal.type === "editGoal") return {
-      title: "Edit Daily Goal",
-      fields: [
-        { key: "amount", label: "Goal Amount", type: "number", placeholder: "e.g. 5", default: String(goalMinutes % 60 === 0 ? goalMinutes / 60 : goalMinutes) },
-        { key: "unit", label: "Unit", type: "select", default: goalMinutes % 60 === 0 ? "hours" : "minutes", options: [{ value: "hours", label: "Hours" }, { value: "minutes", label: "Minutes" }] },
-      ],
-    };
+    if (modal.type === "editGoal") return { title: "Edit Daily Goal", fields: [
+      { key: "amount", label: "Goal Amount", type: "number", placeholder: "e.g. 5", default: String(goalMinutes % 60 === 0 ? goalMinutes / 60 : goalMinutes) },
+      { key: "unit", label: "Unit", type: "select", default: goalMinutes % 60 === 0 ? "hours" : "minutes", options: [{ value: "hours", label: "Hours" }, { value: "minutes", label: "Minutes" }] },
+    ]};
     return { title: "", fields: [] };
   };
 
@@ -317,25 +306,41 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
   }, 0);
 
   const goalProgress = Math.min((focusHours * 60 / goalMinutes) * 100, 100);
-  const goalLabel = goalMinutes % 60 === 0 ? `${goalMinutes / 60}h` : `${goalMinutes}m`;
-  const focusLabel = focusHours >= 1 ? `${focusHours}h` : `${Math.round(focusHours * 60)}m`;
+  const goalLabel    = goalMinutes % 60 === 0 ? `${goalMinutes / 60}h` : `${goalMinutes}m`;
+  const focusLabel   = focusHours >= 1 ? `${focusHours}h` : `${Math.round(focusHours * 60)}m`;
   const { title: modalTitle, fields: modalFields } = getModalProps();
   const completedDots = sessions % 4;
   const modeLabel = currentTotal === POMODORO_TIME ? "25 min" : currentTotal === BREAK_TIME ? "5 min" : "15 min";
 
   const dm = darkMode;
-  const card = dm ? "bg-[#1a1f35] border border-white/5" : "bg-white border border-slate-100 shadow-sm";
+  const card      = dm ? "bg-[#1a1f35] border border-white/5" : "bg-white border border-slate-100 shadow-sm";
   const cardInner = dm ? "bg-white/5" : "bg-slate-50";
-  const textMain = dm ? "text-white" : "text-slate-900";
-  const textSub = dm ? "text-slate-400" : "text-slate-500";
+  const textMain  = dm ? "text-white"     : "text-slate-900";
+  const textSub   = dm ? "text-slate-400" : "text-slate-500";
   const textMuted = dm ? "text-slate-500" : "text-slate-400";
-  const btnGhost = dm ? "bg-white/10 text-slate-300 hover:bg-white/20" : "bg-slate-100 text-slate-600 hover:bg-slate-200";
-  const divider = dm ? "border-white/10" : "border-slate-100";
+  const btnGhost  = dm ? "bg-white/10 text-slate-300 hover:bg-white/20" : "bg-slate-100 text-slate-600 hover:bg-slate-200";
+  const divider   = dm ? "border-white/10" : "border-slate-100";
 
   return (
     <>
       <Confetti active={confettiActive} />
       <Modal isOpen={modal.isOpen} title={modalTitle} fields={modalFields} onConfirm={handleModalConfirm} onCancel={closeModal} darkMode={darkMode} />
+
+      <TimerOverlay
+        isOpen={timerOverlay}
+        onClose={() => setTimerOverlay(false)}
+        minutes={minutes} seconds={seconds}
+        currentTotal={currentTotal} timerMode={timerMode}
+        isRunning={isRunning}
+        onStart={startTimer} onPause={pauseTimer}
+        onReset={resetTimer} onSkip={skipSession}
+        onFocus={resetTimer}
+        onBreak={startBreak}
+        onLongBreak={startLongBreak}
+        darkMode={darkMode}
+        completedDots={completedDots}
+        modeLabel={modeLabel}
+      />
 
       <div className="space-y-6">
         {/* HEADER */}
@@ -363,25 +368,33 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
 
             {/* TIMER CARD */}
             <div className={`rounded-[32px] p-8 ${card}`}>
-              {/* Mode tabs */}
-              <div className="flex gap-2 mb-8">
-                {[
-                  { label: "Focus", action: resetTimer },
-                  { label: "Break", action: startBreak },
-                  { label: "Long Break", action: startLongBreak },
-                ].map(({ label, action }) => (
-                  <button key={label} onClick={action}
-                    className={`px-5 py-2 rounded-xl font-semibold text-sm transition-all ${timerMode === label
-                      ? "bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg"
-                      : dm ? "bg-white/10 text-slate-400 hover:bg-white/20" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-                    }`}
-                  >{label}</button>
-                ))}
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex gap-2">
+                  {[
+                    { label: "Focus",      action: resetTimer },
+                    { label: "Break",      action: startBreak },
+                    { label: "Long Break", action: startLongBreak },
+                  ].map(({ label, action }) => (
+                    <button key={label} onClick={action}
+                      className={`px-5 py-2 rounded-xl font-semibold text-sm transition-all ${timerMode === label
+                        ? "bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg"
+                        : dm ? "bg-white/10 text-slate-400 hover:bg-white/20" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                      }`}
+                    >{label}</button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setTimerOverlay(true)}
+                  title="Expand timer"
+                  className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all hover:scale-110 ${dm ? "bg-white/10 text-slate-300 hover:bg-purple-500/30 hover:text-purple-300" : "bg-slate-100 text-slate-500 hover:bg-purple-100 hover:text-purple-600"}`}
+                >
+                  <FiMaximize2 size={17} />
+                </button>
               </div>
 
               <div className="flex flex-col items-center">
                 <div className="relative">
-                  <CircularTimer minutes={minutes} seconds={seconds} currentTotal={currentTotal} />
+                  <CircularTimer minutes={minutes} seconds={seconds} currentTotal={currentTotal} size={320} />
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <p className={`text-sm font-medium mb-1 ${textSub}`}>Focus Time</p>
                     <h1 className={`text-6xl font-black tabular-nums ${textMain}`}>
@@ -390,21 +403,18 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
                     <p className="text-purple-400 font-semibold mt-2 text-sm">{modeLabel}</p>
                   </div>
                 </div>
-
                 <div className="flex gap-4 mt-6">
                   <button onClick={resetTimer} className={`px-6 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all text-sm ${btnGhost}`}>
                     <FiRotateCcw size={15} /> Reset
                   </button>
                   <button onClick={isRunning ? pauseTimer : startTimer}
-                    className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-10 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg hover:scale-105 transition-all"
-                  >
+                    className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-10 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg hover:scale-105 transition-all">
                     {isRunning ? <><FiPause /> Pause</> : <><FiPlay /> Start</>}
                   </button>
                   <button onClick={skipSession} className={`px-6 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all text-sm ${btnGhost}`}>
                     <FiSkipForward size={15} /> Skip
                   </button>
                 </div>
-
                 <div className="flex items-center gap-2 mt-5">
                   <span className={`text-sm ${textMuted}`}>Focus</span>
                   {Array.from({ length: 4 }).map((_, i) => (
@@ -423,9 +433,9 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                  { label: "Start Break", icon: <FiCoffee className="text-purple-400" size={22} />, bg: dm ? "bg-purple-500/10 hover:bg-purple-500/20" : "bg-purple-50", action: startBreak },
-                  { label: "Long Break", icon: <FiClock className="text-blue-400" size={22} />, bg: dm ? "bg-blue-500/10 hover:bg-blue-500/20" : "bg-blue-50", action: startLongBreak },
-                  { label: "Add Session", icon: <FiPlusCircle className="text-green-400" size={22} />, bg: dm ? "bg-green-500/10 hover:bg-green-500/20" : "bg-green-50", action: openAddSession },
+                  { label: "Start Break",  icon: <FiCoffee className="text-purple-400" size={22} />, bg: dm ? "bg-purple-500/10 hover:bg-purple-500/20" : "bg-purple-50", action: startBreak },
+                  { label: "Long Break",   icon: <FiClock   className="text-blue-400"   size={22} />, bg: dm ? "bg-blue-500/10 hover:bg-blue-500/20"   : "bg-blue-50",   action: startLongBreak },
+                  { label: "Add Session",  icon: <FiPlusCircle className="text-green-400" size={22} />, bg: dm ? "bg-green-500/10 hover:bg-green-500/20" : "bg-green-50", action: openAddSession },
                 ].map(({ label, icon, bg, action }) => (
                   <button key={label} onClick={action}
                     className={`flex flex-col items-center justify-center gap-2 rounded-3xl h-24 hover:scale-105 transition-all ${bg}`}>
@@ -444,9 +454,9 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
             {/* STATS BAR */}
             <div className={`rounded-[32px] px-8 py-5 flex flex-wrap gap-6 items-center justify-between ${card}`}>
               {[
-                { emoji: "🔥", label: "Streak", value: "7 Days" },
+                { emoji: "🔥", label: "Streak",          value: "7 Days" },
                 { emoji: "⏱️", label: "Pomodoros Today", value: `${sessions} Sessions` },
-                { emoji: "⭐", label: "Focus Score", value: "85%" },
+                { emoji: "⭐", label: "Focus Score",     value: "85%" },
               ].map(({ emoji, label, value }) => (
                 <div key={label} className="flex items-center gap-2">
                   <span className="text-xl">{emoji}</span>
@@ -460,7 +470,7 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
             </div>
           </div>
 
-          {/* RIGHT */}
+          {/* RIGHT PANEL */}
           <div className="space-y-5">
 
             {/* TODAY SESSIONS */}
