@@ -5,6 +5,7 @@ import {
   FiClipboard,
   FiTrash2,
 } from "react-icons/fi";
+import AIChat from "../components/AIChat";
 
 function Dashboard({
   tasks,
@@ -157,19 +158,14 @@ function Dashboard({
                       : "border-slate-100 hover:bg-blue-50 hover:border-blue-200"
                   }`}
                 >
-                  {/* LEFT — task info */}
                   <div className="flex-1 min-w-0 mr-4">
                     <h3 className={`font-semibold text-lg truncate ${textPrimary}`}>
                       {task.title}
                     </h3>
                     <p className={`text-sm mt-1 ${textSecondary}`}>{task.course}</p>
                   </div>
-
-                  {/* RIGHT — date + buttons */}
                   <div className="flex items-center gap-3 flex-shrink-0">
                     <span className={`text-sm ${textSecondary}`}>{task.dueDate}</span>
-
-                    {/* COMPLETE */}
                     <button
                       onClick={(e) => { e.stopPropagation(); toggleComplete(task.id); }}
                       className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${
@@ -177,12 +173,9 @@ function Dashboard({
                           ? "bg-white/10 text-slate-400 hover:bg-green-500/20 hover:text-green-400"
                           : "bg-slate-100 text-slate-500 hover:bg-green-100 hover:text-green-600"
                       }`}
-                      title="Mark as done"
                     >
                       <FiCheckCircle size={18} />
                     </button>
-
-                    {/* DELETE */}
                     <button
                       onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
                       className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${
@@ -190,7 +183,6 @@ function Dashboard({
                           ? "bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white"
                           : "bg-red-100 text-red-500 hover:bg-red-500 hover:text-white"
                       }`}
-                      title="Delete task"
                     >
                       <FiTrash2 size={16} />
                     </button>
@@ -222,7 +214,6 @@ function Dashboard({
                 exams.map((exam) => (
                   <div key={exam.id} className={`p-5 rounded-2xl transition-all duration-300 ${dm ? "bg-slate-700 hover:bg-slate-600" : "bg-slate-50 hover:bg-orange-100"}`}>
                     <h3 className={`font-semibold text-lg ${textPrimary}`}>{exam.examTitle}</h3>
-                    <p className={`text-sm mt-1 ${textSecondary}`}>{exam.course}</p>
                     <p className="text-sm text-orange-500 mt-3 font-medium">{exam.examDate}</p>
                   </div>
                 ))
@@ -256,6 +247,10 @@ function Dashboard({
           </div>
         </div>
       </div>
+
+      {/* ── AI CHAT ── */}
+      <AIChat darkMode={darkMode} />
+
     </div>
   );
 }
