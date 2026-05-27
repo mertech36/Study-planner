@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { FiPlus, FiTrash2, FiCheckCircle } from "react-icons/fi";
 
-function Tasks({ tasks, setTasks, taskFilter, setTaskFilter, darkMode }) {
+function Tasks({ tasks, setTasks, taskFilter, setTaskFilter, darkMode, onTaskComplete }) {
   const [title, setTitle] = useState("");
   const [course, setCourse] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -17,11 +17,19 @@ function Tasks({ tasks, setTasks, taskFilter, setTaskFilter, darkMode }) {
   };
 
   const toggleComplete = (id) => {
-    setTasks(tasks.map((task) =>
-      task.id === id
-        ? { ...task, completed: !task.completed, status: !task.completed ? "Done" : "To Do" }
-        : task
+    const task = tasks.find((t) => t.id === id);
+    const wasCompleted = task?.completed;
+
+    setTasks(tasks.map((t) =>
+      t.id === id
+        ? { ...t, completed: !t.completed, status: !t.completed ? "Done" : "To Do" }
+        : t
     ));
+
+    // Sadece tamamlanırken (false → true) Firestore'a kaydet
+    if (!wasCompleted && onTaskComplete) {
+      onTaskComplete();
+    }
   };
 
   const deleteTask = (id) => setTasks(tasks.filter((t) => t.id !== id));
@@ -44,13 +52,13 @@ function Tasks({ tasks, setTasks, taskFilter, setTaskFilter, darkMode }) {
     return "🚀";
   };
 
-  const card = dm ? "bg-[#1a1f35] border border-white/5" : "bg-white border border-slate-100";
+  const card     = dm ? "bg-[#1a1f35] border border-white/5" : "bg-white border border-slate-100";
   const cardForm = dm ? "bg-[#1a1f35] border border-white/5" : "bg-white/70 backdrop-blur-xl border border-white/40";
-  const input = dm
+  const input    = dm
     ? "bg-white/5 border border-white/10 text-white placeholder-slate-500 rounded-2xl px-5 py-4 outline-none focus:ring-4 focus:ring-purple-500/20 focus:border-purple-400 transition-all"
     : "bg-white border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:ring-4 focus:ring-blue-100 transition-all";
-  const textMain = dm ? "text-white" : "text-slate-900";
-  const textSub = dm ? "text-slate-400" : "text-slate-500";
+  const textMain = dm ? "text-white"     : "text-slate-900";
+  const textSub  = dm ? "text-slate-400" : "text-slate-500";
 
   return (
     <div className="space-y-8">
@@ -93,9 +101,9 @@ function Tasks({ tasks, setTasks, taskFilter, setTaskFilter, darkMode }) {
       {/* FILTERS */}
       <div className="flex gap-4">
         {[
-          { label: "All", filter: "all", active: "bg-blue-500 text-white shadow-lg" },
+          { label: "All",       filter: "all",       active: "bg-blue-500 text-white shadow-lg" },
           { label: "Completed", filter: "completed", active: "bg-green-500 text-white shadow-lg" },
-          { label: "Pending", filter: "pending", active: "bg-orange-500 text-white shadow-lg" },
+          { label: "Pending",   filter: "pending",   active: "bg-orange-500 text-white shadow-lg" },
         ].map(({ label, filter, active }) => (
           <button key={filter} onClick={() => setTaskFilter(filter)}
             className={`px-5 py-3 rounded-2xl font-semibold transition-all ${
@@ -138,11 +146,17 @@ function Tasks({ tasks, setTasks, taskFilter, setTaskFilter, darkMode }) {
                 <div className="flex items-center gap-3">
                   <button onClick={() => toggleComplete(task.id)}
                     className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
-                      task.completed ? "bg-green-500 text-white" : dm ? "bg-white/10 text-slate-400 hover:bg-green-500/20 hover:text-green-400" : "bg-slate-100 text-slate-600 hover:bg-green-100 hover:text-green-600"
+                      task.completed
+                        ? "bg-green-500 text-white"
+                        : dm ? "bg-white/10 text-slate-400 hover:bg-green-500/20 hover:text-green-400"
+                               : "bg-slate-100 text-slate-600 hover:bg-green-100 hover:text-green-600"
                     }`}
                   ><FiCheckCircle size={22} /></button>
                   <button onClick={() => deleteTask(task.id)}
-                    className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${dm ? "bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white" : "bg-red-100 text-red-500 hover:bg-red-500 hover:text-white"}`}
+                    className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
+                      dm ? "bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white"
+                         : "bg-red-100 text-red-500 hover:bg-red-500 hover:text-white"
+                    }`}
                   ><FiTrash2 size={20} /></button>
                 </div>
               </div>

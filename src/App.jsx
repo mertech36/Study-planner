@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { FiMenu } from "react-icons/fi";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "./firebase";
+import { useStudyStats } from "./hooks/useStudyStats";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -21,11 +22,11 @@ const LONG_BREAK_TIME = 15 * 60;
 function App() {
   /* ── AUTH ── */
   const [user, setUser] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true); // Firebase kontrol ederken bekle
-  const [authScreen, setAuthScreen] = useState("login"); // "login" | "register"
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authScreen, setAuthScreen] = useState("login");
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {  
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       setAuthLoading(false);
     });
@@ -36,6 +37,9 @@ function App() {
     await signOut(auth);
     setUser(null);
   };
+
+  /* ── STUDY STATS (Firestore) ── */
+  const { currentWeek, weekHistory, streak, recordFocusSession, recordTaskCompleted } = useStudyStats(user?.uid);
 
   /* ── APP STATE ── */
   const [page, setPage] = useState("dashboard");
@@ -73,7 +77,7 @@ function App() {
   const [timerMode, setTimerMode] = useState("Focus");
   const [currentTotal, setCurrentTotal] = useState(POMODORO_TIME);
   const [sessions, setSessions] = useState(0);
-  const [focusHours, setFocusHours] = useState(3.2);
+  const [focusHours, setFocusHours] = useState(0);
   const [goalMinutes, setGoalMinutes] = useState(300);
   const [sessionsList, setSessionsList] = useState([
     { title: "DBMS", time: "50:00" },
@@ -110,6 +114,8 @@ function App() {
             setIsRunning(false);
             setSessions((p) => p + 1);
             setFocusHours((p) => Number((p + 0.42).toFixed(2)));
+            // Firestore'a kaydet
+            recordFocusSession(25);
             playAlarm();
             return 0;
           }
@@ -163,7 +169,7 @@ function App() {
     );
   }
 
-  /* ── NOT LOGGED IN → show auth ── */
+  /* ── NOT LOGGED IN ── */
   if (!user) {
     if (authScreen === "register") {
       return <Register onSwitchToLogin={() => setAuthScreen("login")} />;
@@ -171,7 +177,7 @@ function App() {
     return <Login onSwitchToRegister={() => setAuthScreen("register")} />;
   }
 
-  /* ── LOGGED IN → show app ── */
+  /* ── LOGGED IN ── */
   const renderPage = () => {
     if (page === "dashboard") return (
       <Dashboard tasks={tasks} setTasks={setTasks} exams={exams} courses={courses}
@@ -181,7 +187,9 @@ function App() {
     if (page === "tasks") return (
       <Tasks tasks={tasks} setTasks={setTasks}
         taskFilter={taskFilter} setTaskFilter={setTaskFilter}
-        darkMode={darkMode} />
+        darkMode={darkMode}
+        onTaskComplete={recordTaskCompleted}
+      />
     );
     if (page === "courses") return (
       <Courses courses={courses} setCourses={setCourses} darkMode={darkMode} />
@@ -193,8 +201,13 @@ function App() {
       <Focus darkMode={darkMode} setDarkMode={setDarkMode} focusProps={focusProps} />
     );
     if (page === "analytics") return (
-      <Analytics tasks={tasks} courses={courses} exams={exams}
-        focusHours={focusHours} sessions={sessions} darkMode={darkMode} />
+      <Analytics
+        tasks={tasks} courses={courses} exams={exams}
+        focusHours={focusHours} sessions={sessions} darkMode={darkMode}
+        currentWeek={currentWeek}
+        weekHistory={weekHistory}
+        streak={streak}
+      />
     );
     if (page === "settings") return (
       <Settings darkMode={darkMode} setDarkMode={setDarkMode} settingsProps={settingsProps} />
@@ -207,7 +220,6 @@ function App() {
         ? "bg-gradient-to-br from-[#0f172a] via-[#081028] to-[#020617]"
         : "bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100"
     }`}>
-      {/* HAMBURGER */}
       <button
         onClick={() => setSidebarOpen(true)}
         className={`fixed top-5 left-5 z-50 w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg transition-all hover:scale-105 ${
