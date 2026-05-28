@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { deleteUser } from "firebase/auth";
+import { auth } from "../firebase";
 import {
   FiEdit2, FiCheck, FiLogOut,
   FiMoon, FiSun, FiBell, FiShield, FiTrash2,
@@ -13,6 +15,7 @@ function Settings({ darkMode, setDarkMode, settingsProps }) {
     notifExams, setNotifExams,
     notifTasks, setNotifTasks,
     notifFocus, setNotifFocus,
+    onSignOut,
   } = settingsProps;
 
   const [isEditingName, setIsEditingName] = useState(false);
@@ -21,6 +24,8 @@ function Settings({ darkMode, setDarkMode, settingsProps }) {
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const dm = darkMode;
   const card = dm ? "bg-white/5 border border-white/10" : "bg-white border border-slate-100 shadow-sm";
@@ -48,6 +53,30 @@ function Settings({ darkMode, setDarkMode, settingsProps }) {
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 2500);
     }, 900);
+  };
+
+  const handleSignOut = async () => {
+    await onSignOut();
+    setShowLogoutModal(false);
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    setDeleteError("");
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) throw new Error("Kullanıcı bulunamadı.");
+      await deleteUser(currentUser);
+      // Başarılı → onAuthStateChanged otomatik tetiklenecek, kullanıcı login'e dönecek
+    } catch (err) {
+      // Firebase bazen yeniden giriş ister
+      if (err.code === "auth/requires-recent-login") {
+        setDeleteError("Güvenlik için önce çıkış yapıp tekrar giriş yap, sonra tekrar dene.");
+      } else {
+        setDeleteError("Bir hata oluştu: " + err.message);
+      }
+      setIsDeleting(false);
+    }
   };
 
   const Toggle = ({ value, onChange }) => (
@@ -268,7 +297,7 @@ function Settings({ darkMode, setDarkMode, settingsProps }) {
                 className={`flex-1 py-3 font-bold rounded-2xl text-sm ${dm ? "bg-white/10 text-slate-300 hover:bg-white/20" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
                 Cancel
               </button>
-              <button onClick={() => setShowLogoutModal(false)}
+              <button onClick={handleSignOut}
                 className="flex-1 py-3 font-bold rounded-2xl text-sm bg-red-500 hover:bg-red-600 text-white shadow-lg transition-all hover:scale-[1.02]">
                 Sign Out
               </button>
@@ -285,15 +314,19 @@ function Settings({ darkMode, setDarkMode, settingsProps }) {
               <FiAlertTriangle className="text-red-500" size={24} />
             </div>
             <h3 className="text-2xl font-black mb-2">Delete Account</h3>
-            <p className={`mb-7 text-sm ${textSub}`}>This action is permanent and cannot be undone. All your data will be lost.</p>
+            <p className={`mb-4 text-sm ${textSub}`}>This action is permanent and cannot be undone. All your data will be lost.</p>
+            {deleteError && (
+              <p className="mb-4 text-xs text-red-400 bg-red-500/10 px-4 py-3 rounded-2xl">{deleteError}</p>
+            )}
             <div className="flex gap-3">
-              <button onClick={() => setShowDeleteModal(false)}
+              <button onClick={() => { setShowDeleteModal(false); setDeleteError(""); }}
+                disabled={isDeleting}
                 className={`flex-1 py-3 font-bold rounded-2xl text-sm ${dm ? "bg-white/10 text-slate-300 hover:bg-white/20" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
                 Cancel
               </button>
-              <button onClick={() => setShowDeleteModal(false)}
-                className="flex-1 py-3 font-bold rounded-2xl text-sm bg-red-500 hover:bg-red-600 text-white shadow-lg transition-all hover:scale-[1.02]">
-                Delete
+              <button onClick={handleDeleteAccount} disabled={isDeleting}
+                className="flex-1 py-3 font-bold rounded-2xl text-sm bg-red-500 hover:bg-red-600 text-white shadow-lg transition-all hover:scale-[1.02] disabled:opacity-50">
+                {isDeleting ? "Deleting..." : "Delete"}
               </button>
             </div>
           </div>
