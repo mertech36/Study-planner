@@ -11,7 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
 import Courses from "./pages/Courses";
 import Exams from "./pages/Exams";
-import Focus from "./pages/Focus";
+import Focus from "./pages/focus";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 
@@ -68,6 +68,7 @@ function App() {
   const timerRef = useRef(null);
   const saveTimeoutRef = useRef(null);
   const snapshotUnsubRef = useRef(null);
+  const isLoadingFromFirestore = useRef(false); // state yerine ref — race condition olmaz
 
   /* ── AUTH LISTENER ── */
   useEffect(() => {
@@ -81,6 +82,7 @@ function App() {
       if (firebaseUser) {
         setUser(firebaseUser);
         setDataLoading(true);
+        isLoadingFromFirestore.current = true;
 
         const ref = doc(db, "users", firebaseUser.uid);
 
@@ -88,6 +90,7 @@ function App() {
         const unsubSnapshot = onSnapshot(
           ref,
           (snap) => {
+            isLoadingFromFirestore.current = true; // snapshot gelirken kaydetmeyi engelle
             if (snap.exists()) {
               const data = snap.data();
               if (data.tasks) setTasks(data.tasks);
@@ -108,10 +111,15 @@ function App() {
               setUserName(firebaseUser.displayName || "Student");
               setUserEmail(firebaseUser.email || "");
             }
-            setDataLoading(false);
+            // Kısa bir gecikmeyle kaydetmeye izin ver — React state'lerin oturmasını bekle
+            setTimeout(() => {
+              isLoadingFromFirestore.current = false;
+              setDataLoading(false);
+            }, 300);
           },
           (err) => {
             console.error("Snapshot hatası:", err);
+            isLoadingFromFirestore.current = false;
             setDataLoading(false);
           }
         );
@@ -137,9 +145,10 @@ function App() {
 
   /* ── FIRESTORE'A KAYDET (debounced) ── */
   const scheduleSave = (patch) => {
-    if (!user) return;
+    if (!user || isLoadingFromFirestore.current) return;
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => {
+      if (isLoadingFromFirestore.current) return; // çift kontrol
       saveUserData(user.uid, patch).catch((err) =>
         console.error("Kayıt hatası:", err)
       );
