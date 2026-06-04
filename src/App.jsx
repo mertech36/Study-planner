@@ -19,7 +19,6 @@ const POMODORO_TIME = 25 * 60;
 const BREAK_TIME = 5 * 60;
 const LONG_BREAK_TIME = 15 * 60;
 
-/* ── Firestore'a kullanıcı verisini kaydet ── */
 async function saveUserData(uid, data) {
   const ref = doc(db, "users", uid);
   await setDoc(ref, data, { merge: true });
@@ -38,7 +37,7 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [taskFilter, setTaskFilter] = useState("all");
 
-  /* ── USER DATA — Firestore'dan gelir ── */
+  /* ── USER DATA ── */
   const [tasks, setTasks] = useState([]);
   const [exams, setExams] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -68,12 +67,13 @@ function App() {
   const timerRef = useRef(null);
   const saveTimeoutRef = useRef(null);
   const snapshotUnsubRef = useRef(null);
-  const isLoadingFromFirestore = useRef(false); // state yerine ref — race condition olmaz
+  const isLoadingFromFirestore = useRef(false);
+  const timerStartedAt = useRef(null);  // Date.now() — ne zaman başladı
+  const timerStartValue = useRef(null); // başladığındaki kalan saniye
 
   /* ── AUTH LISTENER ── */
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (firebaseUser) => {
-      // Önceki snapshot dinleyiciyi kapat
       if (snapshotUnsubRef.current) {
         snapshotUnsubRef.current();
         snapshotUnsubRef.current = null;
@@ -86,11 +86,10 @@ function App() {
 
         const ref = doc(db, "users", firebaseUser.uid);
 
-        // Gerçek zamanlı dinleyici — her cihazda anında güncellenir
         const unsubSnapshot = onSnapshot(
           ref,
           (snap) => {
-            isLoadingFromFirestore.current = true; // snapshot gelirken kaydetmeyi engelle
+            isLoadingFromFirestore.current = true;
             if (snap.exists()) {
               const data = snap.data();
               if (data.tasks) setTasks(data.tasks);
@@ -107,11 +106,9 @@ function App() {
               if (data.goalMinutes) setGoalMinutes(data.goalMinutes);
               if (data.sessionsList) setSessionsList(data.sessionsList);
             } else {
-              // Yeni kullanıcı
               setUserName(firebaseUser.displayName || "Student");
               setUserEmail(firebaseUser.email || "");
             }
-            // Kısa bir gecikmeyle kaydetmeye izin ver — React state'lerin oturmasını bekle
             setTimeout(() => {
               isLoadingFromFirestore.current = false;
               setDataLoading(false);
@@ -148,42 +145,18 @@ function App() {
     if (!user || isLoadingFromFirestore.current) return;
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => {
-      if (isLoadingFromFirestore.current) return; // çift kontrol
+      if (isLoadingFromFirestore.current) return;
       saveUserData(user.uid, patch).catch((err) =>
         console.error("Kayıt hatası:", err)
       );
     }, 1500);
   };
 
-  // Tasks değişince kaydet
-  useEffect(() => {
-    if (!user || dataLoading) return;
-    scheduleSave({ tasks });
-  }, [tasks]);
-
-  // Exams değişince kaydet
-  useEffect(() => {
-    if (!user || dataLoading) return;
-    scheduleSave({ exams });
-  }, [exams]);
-
-  // Courses değişince kaydet
-  useEffect(() => {
-    if (!user || dataLoading) return;
-    scheduleSave({ courses });
-  }, [courses]);
-
-  // Settings değişince kaydet
-  useEffect(() => {
-    if (!user || dataLoading) return;
-    scheduleSave({ userName, userEmail, themeColor, notifExams, notifTasks, notifFocus });
-  }, [userName, userEmail, themeColor, notifExams, notifTasks, notifFocus]);
-
-  // Focus verileri değişince kaydet
-  useEffect(() => {
-    if (!user || dataLoading) return;
-    scheduleSave({ focusHours, sessions, goalMinutes, sessionsList });
-  }, [focusHours, sessions, goalMinutes, sessionsList]);
+  useEffect(() => { if (!user || dataLoading) return; scheduleSave({ tasks }); }, [tasks]);
+  useEffect(() => { if (!user || dataLoading) return; scheduleSave({ exams }); }, [exams]);
+  useEffect(() => { if (!user || dataLoading) return; scheduleSave({ courses }); }, [courses]);
+  useEffect(() => { if (!user || dataLoading) return; scheduleSave({ userName, userEmail, themeColor, notifExams, notifTasks, notifFocus }); }, [userName, userEmail, themeColor, notifExams, notifTasks, notifFocus]);
+  useEffect(() => { if (!user || dataLoading) return; scheduleSave({ focusHours, sessions, goalMinutes, sessionsList }); }, [focusHours, sessions, goalMinutes, sessionsList]);
 
   /* ── SIGN OUT ── */
   const handleSignOut = async () => {
@@ -214,22 +187,29 @@ function App() {
     } catch (e) {}
   };
 
-  /* ── TIMER ── */
+  /* ── TIMER — Date.now() tabanlı, arka sekme sorunu yok ── */
   useEffect(() => {
     if (isRunning) {
+      // Başlangıç anını ve o anki kalan süreyi kaydet
+      timerStartedAt.current = Date.now();
+      timerStartValue.current = focusTime;
+
       timerRef.current = setInterval(() => {
-        setFocusTime((prev) => {
-          if (prev <= 1) {
-            clearInterval(timerRef.current);
-            setIsRunning(false);
-            setSessions((p) => p + 1);
-            setFocusHours((p) => Number((p + 0.42).toFixed(2)));
-            playAlarm();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+        // Gerçek geçen süreyi hesapla — setInterval'in yavaşlaması önemli değil
+        const elapsed = Math.floor((Date.now() - timerStartedAt.current) / 1000);
+        const remaining = timerStartValue.current - elapsed;
+
+        if (remaining <= 0) {
+          clearInterval(timerRef.current);
+          setFocusTime(0);
+          setIsRunning(false);
+          setSessions((p) => p + 1);
+          setFocusHours((p) => Number((p + 0.42).toFixed(2)));
+          playAlarm();
+        } else {
+          setFocusTime(remaining);
+        }
+      }, 500); // 500ms — arka sekmede bile yeterince sık
     }
     return () => clearInterval(timerRef.current);
   }, [isRunning]);
@@ -282,22 +262,15 @@ function App() {
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
             <div className="absolute inset-0 bg-blue-400 blur-2xl opacity-30 rounded-full" />
-            <img
-              src="/icon.png"
-              alt="logo"
-              className="relative w-16 h-16 rounded-3xl shadow-2xl"
-            />
+            <img src="/icon.png" alt="logo" className="relative w-16 h-16 rounded-3xl shadow-2xl" />
           </div>
           <p className="text-slate-500 text-sm font-medium">
             {authLoading ? "Checking session..." : "Loading your data..."}
           </p>
           <div className="flex gap-1.5">
             {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="w-2 h-2 rounded-full bg-blue-500 animate-bounce"
-                style={{ animationDelay: `${i * 0.15}s` }}
-              />
+              <div key={i} className="w-2 h-2 rounded-full bg-blue-500 animate-bounce"
+                style={{ animationDelay: `${i * 0.15}s` }} />
             ))}
           </div>
         </div>
@@ -314,72 +287,38 @@ function App() {
 
   /* ── MAIN APP ── */
   const renderPage = () => {
-    if (page === "dashboard")
-      return (
-        <Dashboard
-          tasks={tasks}
-          setTasks={setTasks}
-          exams={exams}
-          courses={courses}
-          setPage={setPage}
-          setTaskFilter={setTaskFilter}
-          darkMode={darkMode}
-          setDarkMode={setDarkMode}
-        />
-      );
-    if (page === "tasks")
-      return (
-        <Tasks
-          tasks={tasks}
-          setTasks={setTasks}
-          taskFilter={taskFilter}
-          setTaskFilter={setTaskFilter}
-          darkMode={darkMode}
-        />
-      );
-    if (page === "courses")
-      return (
-        <Courses courses={courses} setCourses={setCourses} darkMode={darkMode} />
-      );
-    if (page === "exams")
-      return <Exams exams={exams} setExams={setExams} darkMode={darkMode} />;
-    if (page === "focus")
-      return (
-        <Focus
-          darkMode={darkMode}
-          setDarkMode={setDarkMode}
-          focusProps={focusProps}
-        />
-      );
-    if (page === "analytics")
-      return (
-        <Analytics
-          tasks={tasks}
-          courses={courses}
-          exams={exams}
-          focusHours={focusHours}
-          sessions={sessions}
-          darkMode={darkMode}
-        />
-      );
-    if (page === "settings")
-      return (
-        <Settings
-          darkMode={darkMode}
-          setDarkMode={setDarkMode}
-          settingsProps={settingsProps}
-        />
-      );
+    if (page === "dashboard") return (
+      <Dashboard tasks={tasks} setTasks={setTasks} exams={exams} courses={courses}
+        setPage={setPage} setTaskFilter={setTaskFilter} darkMode={darkMode} setDarkMode={setDarkMode} />
+    );
+    if (page === "tasks") return (
+      <Tasks tasks={tasks} setTasks={setTasks} taskFilter={taskFilter}
+        setTaskFilter={setTaskFilter} darkMode={darkMode} />
+    );
+    if (page === "courses") return (
+      <Courses courses={courses} setCourses={setCourses} darkMode={darkMode} />
+    );
+    if (page === "exams") return (
+      <Exams exams={exams} setExams={setExams} darkMode={darkMode} />
+    );
+    if (page === "focus") return (
+      <Focus darkMode={darkMode} setDarkMode={setDarkMode} focusProps={focusProps} />
+    );
+    if (page === "analytics") return (
+      <Analytics tasks={tasks} courses={courses} exams={exams}
+        focusHours={focusHours} sessions={sessions} darkMode={darkMode} />
+    );
+    if (page === "settings") return (
+      <Settings darkMode={darkMode} setDarkMode={setDarkMode} settingsProps={settingsProps} />
+    );
   };
 
   return (
-    <div
-      className={`min-h-screen transition-all duration-500 ${
-        darkMode
-          ? "bg-gradient-to-br from-[#0f172a] via-[#081028] to-[#020617]"
-          : "bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100"
-      }`}
-    >
+    <div className={`min-h-screen transition-all duration-500 ${
+      darkMode
+        ? "bg-gradient-to-br from-[#0f172a] via-[#081028] to-[#020617]"
+        : "bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100"
+    }`}>
       <button
         onClick={() => setSidebarOpen(true)}
         className={`fixed top-5 left-5 z-50 w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg transition-all hover:scale-105 ${
@@ -391,14 +330,8 @@ function App() {
         <FiMenu size={20} />
       </button>
 
-      <Sidebar
-        page={page}
-        setPage={setPage}
-        isOpen={sidebarOpen}
-        setIsOpen={setSidebarOpen}
-        darkMode={darkMode}
-        tasks={tasks}
-      />
+      <Sidebar page={page} setPage={setPage} isOpen={sidebarOpen}
+        setIsOpen={setSidebarOpen} darkMode={darkMode} tasks={tasks} />
 
       <main className="min-h-screen p-8 pt-20">{renderPage()}</main>
     </div>
