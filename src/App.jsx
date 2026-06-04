@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { FiMenu } from "react-icons/fi";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "./firebase";
-import { useStudyStats } from "./hooks/useStudyStats";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { auth, db } from "./firebase";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -11,7 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
 import Courses from "./pages/Courses";
 import Exams from "./pages/Exams";
-import Focus from "./pages/focus";
+import Focus from "./pages/Focus";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 
@@ -19,27 +19,25 @@ const POMODORO_TIME = 25 * 60;
 const BREAK_TIME = 5 * 60;
 const LONG_BREAK_TIME = 15 * 60;
 
+/* ── Firestore'dan kullanıcı verisini yükle ── */
+async function loadUserData(uid) {
+  const ref = doc(db, "users", uid);
+  const snap = await getDoc(ref);
+  return snap.exists() ? snap.data() : null;
+}
+
+/* ── Firestore'a kullanıcı verisini kaydet ── */
+async function saveUserData(uid, data) {
+  const ref = doc(db, "users", uid);
+  await setDoc(ref, data, { merge: true });
+}
+
 function App() {
   /* ── AUTH ── */
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(false);
   const [authScreen, setAuthScreen] = useState("login");
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-      setAuthLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const handleSignOut = async () => {
-    await signOut(auth);
-    setUser(null);
-  };
-
-  /* ── STUDY STATS (Firestore) ── */
-  const { currentWeek, weekHistory, streak, recordFocusSession, recordTaskCompleted } = useStudyStats(user?.uid);
 
   /* ── APP STATE ── */
   const [page, setPage] = useState("dashboard");
@@ -47,31 +45,20 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [taskFilter, setTaskFilter] = useState("all");
 
-  /* ── SETTINGS STATE ── */
-  const [userName, setUserName] = useState(() => localStorage.getItem("userName") || "Alex Johnson");
-  const [userEmail, setUserEmail] = useState(() => localStorage.getItem("userEmail") || "alex.johnson@email.com");
-  const [themeColor, setThemeColor] = useState(() => localStorage.getItem("themeColor") || "blue");
-  const [notifExams, setNotifExams] = useState(() => localStorage.getItem("notifExams") !== "false");
-  const [notifTasks, setNotifTasks] = useState(() => localStorage.getItem("notifTasks") === "true");
-  const [notifFocus, setNotifFocus] = useState(() => localStorage.getItem("notifFocus") !== "false");
+  /* ── USER DATA — Firestore'dan gelir ── */
+  const [tasks, setTasks] = useState([]);
+  const [exams, setExams] = useState([]);
+  const [courses, setCourses] = useState([]);
 
-  useEffect(() => { localStorage.setItem("userName", userName); }, [userName]);
-  useEffect(() => { localStorage.setItem("userEmail", userEmail); }, [userEmail]);
-  useEffect(() => { localStorage.setItem("themeColor", themeColor); }, [themeColor]);
-  useEffect(() => { localStorage.setItem("notifExams", String(notifExams)); }, [notifExams]);
-  useEffect(() => { localStorage.setItem("notifTasks", String(notifTasks)); }, [notifTasks]);
-  useEffect(() => { localStorage.setItem("notifFocus", String(notifFocus)); }, [notifFocus]);
+  /* ── SETTINGS ── */
+  const [userName, setUserName] = useState("Alex Johnson");
+  const [userEmail, setUserEmail] = useState("");
+  const [themeColor, setThemeColor] = useState("blue");
+  const [notifExams, setNotifExams] = useState(true);
+  const [notifTasks, setNotifTasks] = useState(false);
+  const [notifFocus, setNotifFocus] = useState(true);
 
-  /* ── DATA ── */
-  const [tasks, setTasks] = useState(() => JSON.parse(localStorage.getItem("tasks")) || []);
-  const [exams, setExams] = useState(() => JSON.parse(localStorage.getItem("exams")) || []);
-  const [courses, setCourses] = useState(() => JSON.parse(localStorage.getItem("courses")) || []);
-
-  useEffect(() => { localStorage.setItem("tasks", JSON.stringify(tasks)); }, [tasks]);
-  useEffect(() => { localStorage.setItem("exams", JSON.stringify(exams)); }, [exams]);
-  useEffect(() => { localStorage.setItem("courses", JSON.stringify(courses)); }, [courses]);
-
-  /* ── TIMER ── */
+  /* ── TIMER STATE ── */
   const [focusTime, setFocusTime] = useState(POMODORO_TIME);
   const [isRunning, setIsRunning] = useState(false);
   const [timerMode, setTimerMode] = useState("Focus");
@@ -86,7 +73,99 @@ function App() {
   ]);
 
   const timerRef = useRef(null);
+  const saveTimeoutRef = useRef(null);
 
+  /* ── AUTH LISTENER ── */
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        setUser(firebaseUser);
+        setDataLoading(true);
+        try {
+          const data = await loadUserData(firebaseUser.uid);
+          if (data) {
+            if (data.tasks) setTasks(data.tasks);
+            if (data.exams) setExams(data.exams);
+            if (data.courses) setCourses(data.courses);
+            if (data.userName) setUserName(data.userName);
+            if (data.userEmail) setUserEmail(data.userEmail);
+            if (data.themeColor) setThemeColor(data.themeColor);
+            if (data.notifExams !== undefined) setNotifExams(data.notifExams);
+            if (data.notifTasks !== undefined) setNotifTasks(data.notifTasks);
+            if (data.notifFocus !== undefined) setNotifFocus(data.notifFocus);
+            if (data.focusHours) setFocusHours(data.focusHours);
+            if (data.sessions) setSessions(data.sessions);
+            if (data.goalMinutes) setGoalMinutes(data.goalMinutes);
+            if (data.sessionsList) setSessionsList(data.sessionsList);
+          } else {
+            // Yeni kullanıcı — displayName'i kullan
+            setUserName(firebaseUser.displayName || "Student");
+            setUserEmail(firebaseUser.email || "");
+          }
+        } catch (err) {
+          console.error("Veri yüklenemedi:", err);
+        } finally {
+          setDataLoading(false);
+        }
+      } else {
+        setUser(null);
+        // State'i sıfırla
+        setTasks([]); setExams([]); setCourses([]);
+        setFocusHours(0); setSessions(0);
+      }
+      setAuthLoading(false);
+    });
+    return () => unsub();
+  }, []);
+
+  /* ── FIRESTORE'A KAYDET (debounced) ── */
+  const scheduleSave = (patch) => {
+    if (!user) return;
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      saveUserData(user.uid, patch).catch((err) =>
+        console.error("Kayıt hatası:", err)
+      );
+    }, 1500); // 1.5sn debounce — her tuş basışında yazmasın
+  };
+
+  // Tasks değişince kaydet
+  useEffect(() => {
+    if (!user || dataLoading) return;
+    scheduleSave({ tasks });
+  }, [tasks]);
+
+  // Exams değişince kaydet
+  useEffect(() => {
+    if (!user || dataLoading) return;
+    scheduleSave({ exams });
+  }, [exams]);
+
+  // Courses değişince kaydet
+  useEffect(() => {
+    if (!user || dataLoading) return;
+    scheduleSave({ courses });
+  }, [courses]);
+
+  // Settings değişince kaydet
+  useEffect(() => {
+    if (!user || dataLoading) return;
+    scheduleSave({ userName, userEmail, themeColor, notifExams, notifTasks, notifFocus });
+  }, [userName, userEmail, themeColor, notifExams, notifTasks, notifFocus]);
+
+  // Focus verileri değişince kaydet
+  useEffect(() => {
+    if (!user || dataLoading) return;
+    scheduleSave({ focusHours, sessions, goalMinutes, sessionsList });
+  }, [focusHours, sessions, goalMinutes, sessionsList]);
+
+  /* ── SIGN OUT ── */
+  const handleSignOut = async () => {
+    clearInterval(timerRef.current);
+    await signOut(auth);
+  };
+
+  /* ── ALARM ── */
   const playAlarm = () => {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -105,6 +184,7 @@ function App() {
     } catch (e) {}
   };
 
+  /* ── TIMER ── */
   useEffect(() => {
     if (isRunning) {
       timerRef.current = setInterval(() => {
@@ -114,8 +194,6 @@ function App() {
             setIsRunning(false);
             setSessions((p) => p + 1);
             setFocusHours((p) => Number((p + 0.42).toFixed(2)));
-            // Firestore'a kaydet
-            recordFocusSession(25);
             playAlarm();
             return 0;
           }
@@ -126,6 +204,7 @@ function App() {
     return () => clearInterval(timerRef.current);
   }, [isRunning]);
 
+  /* ── PROPS ── */
   const focusProps = {
     POMODORO_TIME, BREAK_TIME, LONG_BREAK_TIME,
     focusTime, setFocusTime,
@@ -149,8 +228,8 @@ function App() {
     onSignOut: handleSignOut,
   };
 
-  /* ── AUTH LOADING SCREEN ── */
-  if (authLoading) {
+  /* ── LOADING SCREEN ── */
+  if (authLoading || dataLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -158,6 +237,9 @@ function App() {
             <div className="absolute inset-0 bg-blue-400 blur-2xl opacity-30 rounded-full" />
             <img src="/icon.png" alt="logo" className="relative w-16 h-16 rounded-3xl shadow-2xl" />
           </div>
+          <p className="text-slate-500 text-sm font-medium">
+            {authLoading ? "Checking session..." : "Loading your data..."}
+          </p>
           <div className="flex gap-1.5">
             {[0, 1, 2].map((i) => (
               <div key={i} className="w-2 h-2 rounded-full bg-blue-500 animate-bounce"
@@ -169,15 +251,14 @@ function App() {
     );
   }
 
-  /* ── NOT LOGGED IN ── */
+  /* ── AUTH SCREENS ── */
   if (!user) {
-    if (authScreen === "register") {
+    if (authScreen === "register")
       return <Register onSwitchToLogin={() => setAuthScreen("login")} />;
-    }
     return <Login onSwitchToRegister={() => setAuthScreen("register")} />;
   }
 
-  /* ── LOGGED IN ── */
+  /* ── MAIN APP ── */
   const renderPage = () => {
     if (page === "dashboard") return (
       <Dashboard tasks={tasks} setTasks={setTasks} exams={exams} courses={courses}
@@ -187,9 +268,7 @@ function App() {
     if (page === "tasks") return (
       <Tasks tasks={tasks} setTasks={setTasks}
         taskFilter={taskFilter} setTaskFilter={setTaskFilter}
-        darkMode={darkMode}
-        onTaskComplete={recordTaskCompleted}
-      />
+        darkMode={darkMode} />
     );
     if (page === "courses") return (
       <Courses courses={courses} setCourses={setCourses} darkMode={darkMode} />
@@ -201,13 +280,8 @@ function App() {
       <Focus darkMode={darkMode} setDarkMode={setDarkMode} focusProps={focusProps} />
     );
     if (page === "analytics") return (
-      <Analytics
-        tasks={tasks} courses={courses} exams={exams}
-        focusHours={focusHours} sessions={sessions} darkMode={darkMode}
-        currentWeek={currentWeek}
-        weekHistory={weekHistory}
-        streak={streak}
-      />
+      <Analytics tasks={tasks} courses={courses} exams={exams}
+        focusHours={focusHours} sessions={sessions} darkMode={darkMode} />
     );
     if (page === "settings") return (
       <Settings darkMode={darkMode} setDarkMode={setDarkMode} settingsProps={settingsProps} />
