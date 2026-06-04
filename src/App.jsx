@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { FiMenu } from "react-icons/fi";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { auth, db } from "./firebase";
 
 import Login from "./pages/Login";
@@ -18,13 +18,6 @@ import Settings from "./pages/Settings";
 const POMODORO_TIME = 25 * 60;
 const BREAK_TIME = 5 * 60;
 const LONG_BREAK_TIME = 15 * 60;
-
-/* ── Firestore'dan kullanıcı verisini yükle ── */
-async function loadUserData(uid) {
-  const ref = doc(db, "users", uid);
-  const snap = await getDoc(ref);
-  return snap.exists() ? snap.data() : null;
-}
 
 /* ── Firestore'a kullanıcı verisini kaydet ── */
 async function saveUserData(uid, data) {
@@ -74,48 +67,72 @@ function App() {
 
   const timerRef = useRef(null);
   const saveTimeoutRef = useRef(null);
+  const snapshotUnsubRef = useRef(null);
 
   /* ── AUTH LISTENER ── */
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsub = onAuthStateChanged(auth, (firebaseUser) => {
+      // Önceki snapshot dinleyiciyi kapat
+      if (snapshotUnsubRef.current) {
+        snapshotUnsubRef.current();
+        snapshotUnsubRef.current = null;
+      }
+
       if (firebaseUser) {
         setUser(firebaseUser);
         setDataLoading(true);
-        try {
-          const data = await loadUserData(firebaseUser.uid);
-          if (data) {
-            if (data.tasks) setTasks(data.tasks);
-            if (data.exams) setExams(data.exams);
-            if (data.courses) setCourses(data.courses);
-            if (data.userName) setUserName(data.userName);
-            if (data.userEmail) setUserEmail(data.userEmail);
-            if (data.themeColor) setThemeColor(data.themeColor);
-            if (data.notifExams !== undefined) setNotifExams(data.notifExams);
-            if (data.notifTasks !== undefined) setNotifTasks(data.notifTasks);
-            if (data.notifFocus !== undefined) setNotifFocus(data.notifFocus);
-            if (data.focusHours) setFocusHours(data.focusHours);
-            if (data.sessions) setSessions(data.sessions);
-            if (data.goalMinutes) setGoalMinutes(data.goalMinutes);
-            if (data.sessionsList) setSessionsList(data.sessionsList);
-          } else {
-            // Yeni kullanıcı — displayName'i kullan
-            setUserName(firebaseUser.displayName || "Student");
-            setUserEmail(firebaseUser.email || "");
+
+        const ref = doc(db, "users", firebaseUser.uid);
+
+        // Gerçek zamanlı dinleyici — her cihazda anında güncellenir
+        const unsubSnapshot = onSnapshot(
+          ref,
+          (snap) => {
+            if (snap.exists()) {
+              const data = snap.data();
+              if (data.tasks) setTasks(data.tasks);
+              if (data.exams) setExams(data.exams);
+              if (data.courses) setCourses(data.courses);
+              if (data.userName) setUserName(data.userName);
+              if (data.userEmail) setUserEmail(data.userEmail);
+              if (data.themeColor) setThemeColor(data.themeColor);
+              if (data.notifExams !== undefined) setNotifExams(data.notifExams);
+              if (data.notifTasks !== undefined) setNotifTasks(data.notifTasks);
+              if (data.notifFocus !== undefined) setNotifFocus(data.notifFocus);
+              if (data.focusHours) setFocusHours(data.focusHours);
+              if (data.sessions) setSessions(data.sessions);
+              if (data.goalMinutes) setGoalMinutes(data.goalMinutes);
+              if (data.sessionsList) setSessionsList(data.sessionsList);
+            } else {
+              // Yeni kullanıcı
+              setUserName(firebaseUser.displayName || "Student");
+              setUserEmail(firebaseUser.email || "");
+            }
+            setDataLoading(false);
+          },
+          (err) => {
+            console.error("Snapshot hatası:", err);
+            setDataLoading(false);
           }
-        } catch (err) {
-          console.error("Veri yüklenemedi:", err);
-        } finally {
-          setDataLoading(false);
-        }
+        );
+
+        snapshotUnsubRef.current = unsubSnapshot;
       } else {
         setUser(null);
-        // State'i sıfırla
-        setTasks([]); setExams([]); setCourses([]);
-        setFocusHours(0); setSessions(0);
+        setTasks([]);
+        setExams([]);
+        setCourses([]);
+        setFocusHours(0);
+        setSessions(0);
       }
+
       setAuthLoading(false);
     });
-    return () => unsub();
+
+    return () => {
+      unsub();
+      if (snapshotUnsubRef.current) snapshotUnsubRef.current();
+    };
   }, []);
 
   /* ── FIRESTORE'A KAYDET (debounced) ── */
@@ -126,7 +143,7 @@ function App() {
       saveUserData(user.uid, patch).catch((err) =>
         console.error("Kayıt hatası:", err)
       );
-    }, 1500); // 1.5sn debounce — her tuş basışında yazmasın
+    }, 1500);
   };
 
   // Tasks değişince kaydet
@@ -172,15 +189,19 @@ function App() {
       const beep = (freq, start, dur) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.frequency.value = freq; osc.type = "sine";
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = freq;
+        osc.type = "sine";
         gain.gain.setValueAtTime(0.4, ctx.currentTime + start);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
         osc.start(ctx.currentTime + start);
         osc.stop(ctx.currentTime + start + dur);
       };
-      beep(880, 0, 0.3); beep(1100, 0.35, 0.3);
-      beep(880, 0.7, 0.3); beep(1100, 1.05, 0.5);
+      beep(880, 0, 0.3);
+      beep(1100, 0.35, 0.3);
+      beep(880, 0.7, 0.3);
+      beep(1100, 1.05, 0.5);
     } catch (e) {}
   };
 
@@ -206,25 +227,42 @@ function App() {
 
   /* ── PROPS ── */
   const focusProps = {
-    POMODORO_TIME, BREAK_TIME, LONG_BREAK_TIME,
-    focusTime, setFocusTime,
-    isRunning, setIsRunning,
-    timerMode, setTimerMode,
-    currentTotal, setCurrentTotal,
-    sessions, setSessions,
-    focusHours, setFocusHours,
-    goalMinutes, setGoalMinutes,
-    sessionsList, setSessionsList,
-    timerRef, playAlarm,
+    POMODORO_TIME,
+    BREAK_TIME,
+    LONG_BREAK_TIME,
+    focusTime,
+    setFocusTime,
+    isRunning,
+    setIsRunning,
+    timerMode,
+    setTimerMode,
+    currentTotal,
+    setCurrentTotal,
+    sessions,
+    setSessions,
+    focusHours,
+    setFocusHours,
+    goalMinutes,
+    setGoalMinutes,
+    sessionsList,
+    setSessionsList,
+    timerRef,
+    playAlarm,
   };
 
   const settingsProps = {
-    userName, setUserName,
-    userEmail, setUserEmail,
-    themeColor, setThemeColor,
-    notifExams, setNotifExams,
-    notifTasks, setNotifTasks,
-    notifFocus, setNotifFocus,
+    userName,
+    setUserName,
+    userEmail,
+    setUserEmail,
+    themeColor,
+    setThemeColor,
+    notifExams,
+    setNotifExams,
+    notifTasks,
+    setNotifTasks,
+    notifFocus,
+    setNotifFocus,
     onSignOut: handleSignOut,
   };
 
@@ -235,15 +273,22 @@ function App() {
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
             <div className="absolute inset-0 bg-blue-400 blur-2xl opacity-30 rounded-full" />
-            <img src="/icon.png" alt="logo" className="relative w-16 h-16 rounded-3xl shadow-2xl" />
+            <img
+              src="/icon.png"
+              alt="logo"
+              className="relative w-16 h-16 rounded-3xl shadow-2xl"
+            />
           </div>
           <p className="text-slate-500 text-sm font-medium">
             {authLoading ? "Checking session..." : "Loading your data..."}
           </p>
           <div className="flex gap-1.5">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="w-2 h-2 rounded-full bg-blue-500 animate-bounce"
-                style={{ animationDelay: `${i * 0.15}s` }} />
+              <div
+                key={i}
+                className="w-2 h-2 rounded-full bg-blue-500 animate-bounce"
+                style={{ animationDelay: `${i * 0.15}s` }}
+              />
             ))}
           </div>
         </div>
@@ -260,58 +305,93 @@ function App() {
 
   /* ── MAIN APP ── */
   const renderPage = () => {
-    if (page === "dashboard") return (
-      <Dashboard tasks={tasks} setTasks={setTasks} exams={exams} courses={courses}
-        setPage={setPage} setTaskFilter={setTaskFilter}
-        darkMode={darkMode} setDarkMode={setDarkMode} />
-    );
-    if (page === "tasks") return (
-      <Tasks tasks={tasks} setTasks={setTasks}
-        taskFilter={taskFilter} setTaskFilter={setTaskFilter}
-        darkMode={darkMode} />
-    );
-    if (page === "courses") return (
-      <Courses courses={courses} setCourses={setCourses} darkMode={darkMode} />
-    );
-    if (page === "exams") return (
-      <Exams exams={exams} setExams={setExams} darkMode={darkMode} />
-    );
-    if (page === "focus") return (
-      <Focus darkMode={darkMode} setDarkMode={setDarkMode} focusProps={focusProps} />
-    );
-    if (page === "analytics") return (
-      <Analytics tasks={tasks} courses={courses} exams={exams}
-        focusHours={focusHours} sessions={sessions} darkMode={darkMode} />
-    );
-    if (page === "settings") return (
-      <Settings darkMode={darkMode} setDarkMode={setDarkMode} settingsProps={settingsProps} />
-    );
+    if (page === "dashboard")
+      return (
+        <Dashboard
+          tasks={tasks}
+          setTasks={setTasks}
+          exams={exams}
+          courses={courses}
+          setPage={setPage}
+          setTaskFilter={setTaskFilter}
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
+        />
+      );
+    if (page === "tasks")
+      return (
+        <Tasks
+          tasks={tasks}
+          setTasks={setTasks}
+          taskFilter={taskFilter}
+          setTaskFilter={setTaskFilter}
+          darkMode={darkMode}
+        />
+      );
+    if (page === "courses")
+      return (
+        <Courses courses={courses} setCourses={setCourses} darkMode={darkMode} />
+      );
+    if (page === "exams")
+      return <Exams exams={exams} setExams={setExams} darkMode={darkMode} />;
+    if (page === "focus")
+      return (
+        <Focus
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
+          focusProps={focusProps}
+        />
+      );
+    if (page === "analytics")
+      return (
+        <Analytics
+          tasks={tasks}
+          courses={courses}
+          exams={exams}
+          focusHours={focusHours}
+          sessions={sessions}
+          darkMode={darkMode}
+        />
+      );
+    if (page === "settings")
+      return (
+        <Settings
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
+          settingsProps={settingsProps}
+        />
+      );
   };
 
   return (
-    <div className={`min-h-screen transition-all duration-500 ${
-      darkMode
-        ? "bg-gradient-to-br from-[#0f172a] via-[#081028] to-[#020617]"
-        : "bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100"
-    }`}>
+    <div
+      className={`min-h-screen transition-all duration-500 ${
+        darkMode
+          ? "bg-gradient-to-br from-[#0f172a] via-[#081028] to-[#020617]"
+          : "bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100"
+      }`}
+    >
       <button
         onClick={() => setSidebarOpen(true)}
         className={`fixed top-5 left-5 z-50 w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg transition-all hover:scale-105 ${
-          darkMode ? "bg-white/10 text-white border border-white/10" : "bg-white text-slate-700 border border-slate-200"
+          darkMode
+            ? "bg-white/10 text-white border border-white/10"
+            : "bg-white text-slate-700 border border-slate-200"
         } ${sidebarOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}
       >
         <FiMenu size={20} />
       </button>
 
       <Sidebar
-        page={page} setPage={setPage}
-        isOpen={sidebarOpen} setIsOpen={setSidebarOpen}
-        darkMode={darkMode} tasks={tasks}
+        page={page}
+        setPage={setPage}
+        isOpen={sidebarOpen}
+        setIsOpen={setSidebarOpen}
+        darkMode={darkMode}
+        tasks={tasks}
       />
 
-      <main className="min-h-screen p-8 pt-20">
-        {renderPage()}
-      </main>
+      <main className="min-h-screen p-8 pt-20">{renderPage()}</main>
     </div>
   );
 }
