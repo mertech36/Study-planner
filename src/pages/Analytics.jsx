@@ -133,7 +133,17 @@ function WeekCard({ week, darkMode, isCurrentWeek }) {
 }
 
 /* ─── ANALYTICS PAGE ─── */
-function Analytics({ tasks, courses, exams, focusHours, sessions, darkMode, currentWeek, weekHistory, streak }) {
+function Analytics({
+  tasks = [],
+  courses = [],
+  exams = [],
+  focusHours = 0,
+  sessions = 0,
+  darkMode = false,
+  currentWeek = null,
+  weekHistory = [],
+  streak = 0,
+}) {
   const dm = darkMode;
   const [showAllWeeks, setShowAllWeeks] = useState(false);
 
@@ -144,21 +154,23 @@ function Analytics({ tasks, courses, exams, focusHours, sessions, darkMode, curr
 
   /* ── COMPUTED STATS ── */
   const stats = useMemo(() => {
-    const total       = tasks.length;
-    const completed   = tasks.filter((t) => t.completed).length;
-    const pending     = total - completed;
+    const total        = tasks.length;
+    const completed    = tasks.filter((t) => t.completed).length;
+    const pending      = total - completed;
     const productivity = total > 0 ? Math.round((completed / total) * 100) : 0;
     const highPriority = tasks.filter((t) => t.priority === "High" && !t.completed).length;
     return { total, completed, pending, productivity, highPriority };
   }, [tasks]);
 
   /* ── THIS WEEK STATS ── */
-  const thisWeekHours   = ((currentWeek?.totalMinutes || 0) / 60).toFixed(1);
+  const thisWeekHours    = ((currentWeek?.totalMinutes || 0) / 60).toFixed(1);
   const thisWeekSessions = currentWeek?.sessions || 0;
-  const avgSessionMin   = thisWeekSessions > 0
+  const avgSessionMin    = thisWeekSessions > 0
     ? Math.round((currentWeek?.totalMinutes || 0) / thisWeekSessions)
     : 0;
-  const totalStudyHours = ((weekHistory.reduce((s, w) => s + (w.totalMinutes || 0), 0)) / 60).toFixed(1);
+  const totalStudyHours  = (
+    (weekHistory.reduce((s, w) => s + (w.totalMinutes || 0), 0)) / 60
+  ).toFixed(1);
 
   /* ── WEEKLY BAR CHART ── */
   const weeklyData = useMemo(() => {
@@ -180,7 +192,7 @@ function Analytics({ tasks, courses, exams, focusHours, sessions, darkMode, curr
   ], [tasks]);
 
   const statusSegments = useMemo(() => [
-    { label: "Done",        value: tasks.filter((t) => t.completed).length,                              color: "#22c55e" },
+    { label: "Done",        value: tasks.filter((t) => t.completed).length,                               color: "#22c55e" },
     { label: "In Progress", value: tasks.filter((t) => t.status === "In Progress" && !t.completed).length, color: "#6366f1" },
     { label: "To Do",       value: tasks.filter((t) => t.status === "To Do"       && !t.completed).length, color: "#94a3b8" },
   ], [tasks]);
@@ -222,7 +234,7 @@ function Analytics({ tasks, courses, exams, focusHours, sessions, darkMode, curr
   ];
 
   /* ── WEEK HISTORY (gösterilecek) ── */
-  const visibleWeeks = showAllWeeks ? weekHistory : weekHistory.slice(0, 4);
+  const visibleWeeks  = showAllWeeks ? weekHistory : weekHistory.slice(0, 4);
   const currentWeekId = weekHistory[0]?.weekId;
 
   return (

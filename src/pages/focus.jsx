@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   FiPlay, FiPause, FiRotateCcw, FiMusic, FiMaximize2, FiMinimize2,
   FiZap, FiClock, FiVolume2, FiPlusCircle, FiCoffee,
-  FiEdit3, FiTrash2, FiX, FiCheck, FiSkipForward,
+  FiEdit3, FiTrash2, FiX, FiCheck, FiSkipForward, FiSettings,
 } from "react-icons/fi";
 
 /* ─── CONFETTI ─── */
@@ -88,6 +88,70 @@ function Modal({ isOpen, title, fields, onConfirm, onCancel, darkMode }) {
           <button onClick={onCancel} className={`flex-1 py-3 rounded-2xl font-bold ${dm ? "bg-white/10 text-slate-300 hover:bg-white/20" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>Cancel</button>
           <button onClick={() => onConfirm(values)} className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-2xl font-bold flex items-center justify-center gap-2 hover:scale-[1.02] transition-all">
             <FiCheck size={18} /> Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── TIMER SETTINGS MODAL ─── */
+function TimerSettingsModal({ isOpen, onClose, darkMode, pomodoroMin, breakMin, longBreakMin, onSave }) {
+  const [pom, setPom] = useState(pomodoroMin);
+  const [brk, setBrk] = useState(breakMin);
+  const [lng, setLng] = useState(longBreakMin);
+
+  useEffect(() => {
+    if (isOpen) { setPom(pomodoroMin); setBrk(breakMin); setLng(longBreakMin); }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+  const dm = darkMode;
+
+  const inputClass = `w-full rounded-2xl px-4 py-3 text-center text-2xl font-black outline-none border ${
+    dm ? "bg-white/5 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-900"
+  }`;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className={`relative rounded-[28px] shadow-2xl p-8 w-full max-w-sm mx-4 z-10 border ${dm ? "bg-[#1e2235] border-white/10 text-white" : "bg-white border-slate-100 text-slate-900"}`}>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-black">Timer Settings</h2>
+          <button onClick={onClose} className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${dm ? "bg-white/10 hover:bg-white/20" : "bg-slate-100 hover:bg-slate-200"}`}>
+            <FiX size={18} />
+          </button>
+        </div>
+        <div className="space-y-5">
+          {[
+            { label: "Focus (minutes)", value: pom, set: setPom, min: 1, max: 120 },
+            { label: "Short Break (minutes)", value: brk, set: setBrk, min: 1, max: 60 },
+            { label: "Long Break (minutes)", value: lng, set: setLng, min: 1, max: 90 },
+          ].map(({ label, value, set, min, max }) => (
+            <div key={label}>
+              <label className={`block text-sm font-semibold mb-2 ${dm ? "text-slate-400" : "text-slate-500"}`}>{label}</label>
+              <div className="flex items-center gap-3">
+                <button onClick={() => set((v) => Math.max(min, v - 1))}
+                  className={`w-11 h-11 rounded-2xl font-black text-xl flex items-center justify-center transition-all ${dm ? "bg-white/10 hover:bg-white/20 text-white" : "bg-slate-100 hover:bg-slate-200 text-slate-700"}`}>
+                  −
+                </button>
+                <input type="number" value={value} min={min} max={max}
+                  onChange={(e) => set(Math.max(min, Math.min(max, Number(e.target.value))))}
+                  className={inputClass}
+                />
+                <button onClick={() => set((v) => Math.min(max, v + 1))}
+                  className={`w-11 h-11 rounded-2xl font-black text-xl flex items-center justify-center transition-all ${dm ? "bg-white/10 hover:bg-white/20 text-white" : "bg-slate-100 hover:bg-slate-200 text-slate-700"}`}>
+                  +
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-3 mt-8">
+          <button onClick={onClose} className={`flex-1 py-3 rounded-2xl font-bold ${dm ? "bg-white/10 text-slate-300 hover:bg-white/20" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>Cancel</button>
+          <button onClick={() => { onSave(pom, brk, lng); onClose(); }}
+            className="flex-1 bg-gradient-to-r from-purple-500 to-indigo-600 text-white py-3 rounded-2xl font-bold flex items-center justify-center gap-2 hover:scale-[1.02] transition-all">
+            <FiCheck size={18} /> Apply
           </button>
         </div>
       </div>
@@ -185,10 +249,124 @@ function TimerOverlay({ isOpen, onClose, minutes, seconds, currentTotal, timerMo
   );
 }
 
+/* ─── STOPWATCH OVERLAY ─── */
+function StopwatchOverlay({ isOpen, onClose, darkMode }) {
+  const [swTime, setSwTime] = useState(0);
+  const [swRunning, setSwRunning] = useState(false);
+  const [swLaps, setSwLaps] = useState([]);
+  const swRef = useRef(null);
+  const swStartedAt = useRef(null);
+  const swAccumulated = useRef(0);
+
+  const dm = darkMode;
+
+  useEffect(() => {
+    if (swRunning) {
+      swStartedAt.current = Date.now();
+      swRef.current = setInterval(() => {
+        setSwTime(swAccumulated.current + (Date.now() - swStartedAt.current));
+      }, 50);
+    }
+    return () => clearInterval(swRef.current);
+  }, [swRunning]);
+
+  const startSw = () => setSwRunning(true);
+  const pauseSw = () => {
+    swAccumulated.current += Date.now() - swStartedAt.current;
+    clearInterval(swRef.current);
+    setSwRunning(false);
+  };
+  const resetSw = () => {
+    clearInterval(swRef.current);
+    setSwRunning(false);
+    swAccumulated.current = 0;
+    setSwTime(0);
+    setSwLaps([]);
+  };
+  const lapSw = () => setSwLaps((prev) => [...prev, swTime]);
+
+  const fmt = (ms) => {
+    const totalMs = Math.floor(ms % 1000);
+    const secs    = Math.floor(ms / 1000) % 60;
+    const mins    = Math.floor(ms / 60000) % 60;
+    const hrs     = Math.floor(ms / 3600000);
+    const pad = (n, d = 2) => String(n).padStart(d, "0");
+    return hrs > 0
+      ? `${pad(hrs)}:${pad(mins)}:${pad(secs)}.${pad(Math.floor(totalMs / 10))}`
+      : `${pad(mins)}:${pad(secs)}.${pad(Math.floor(totalMs / 10))}`;
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      <div className={`absolute inset-0 ${dm ? "bg-[#0a0f1e]" : "bg-gradient-to-br from-slate-100 via-orange-50 to-pink-100"}`} />
+
+      {/* Close button */}
+      <button onClick={onClose}
+        className={`absolute top-6 right-6 w-12 h-12 rounded-2xl flex items-center justify-center z-10 transition-all hover:scale-105 ${dm ? "bg-white/10 text-white hover:bg-white/20" : "bg-white text-slate-700 shadow-md hover:bg-slate-50"}`}>
+        <FiMinimize2 size={20} />
+      </button>
+
+      <div className="relative flex flex-col items-center gap-8 w-full max-w-md px-6">
+
+        {/* Title */}
+        <p className={`text-base font-semibold tracking-widest uppercase ${dm ? "text-slate-400" : "text-slate-500"}`}>Stopwatch</p>
+
+        {/* Big time display */}
+        <div className={`w-full rounded-[36px] py-12 flex items-center justify-center shadow-xl border ${dm ? "bg-white/5 border-white/10" : "bg-white border-slate-100"}`}>
+          <span className={`text-7xl font-black tabular-nums tracking-tight ${dm ? "text-white" : "text-slate-900"}`}>
+            {fmt(swTime)}
+          </span>
+        </div>
+
+        {/* Controls */}
+        <div className="flex gap-4 w-full">
+          <button onClick={resetSw}
+            className={`flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all ${dm ? "bg-white/10 text-slate-300 hover:bg-white/20" : "bg-white text-slate-600 shadow-md hover:bg-slate-50"}`}>
+            <FiRotateCcw size={17} /> Reset
+          </button>
+          <button onClick={swRunning ? pauseSw : startSw}
+            className="flex-1 bg-gradient-to-r from-orange-400 to-pink-500 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-xl hover:scale-105 transition-all text-base">
+            {swRunning ? <><FiPause size={18} /> Pause</> : <><FiPlay size={18} /> Start</>}
+          </button>
+          <button onClick={lapSw} disabled={swTime === 0}
+            className={`flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-40 ${dm ? "bg-white/10 text-slate-300 hover:bg-white/20" : "bg-white text-slate-600 shadow-md hover:bg-slate-50"}`}>
+            <FiSkipForward size={17} /> Lap
+          </button>
+        </div>
+
+        {/* Laps list */}
+        {swLaps.length > 0 && (
+          <div className={`w-full rounded-[24px] overflow-hidden border ${dm ? "bg-white/5 border-white/10" : "bg-white border-slate-100 shadow-sm"}`}>
+            <div className="max-h-52 overflow-y-auto">
+              {[...swLaps].reverse().map((lap, i) => {
+                const realIdx = swLaps.length - i;
+                const prev  = swLaps[realIdx - 2] || 0;
+                const split = lap - prev;
+                const isBest  = swLaps.length > 1 && lap === Math.min(...swLaps);
+                const isWorst = swLaps.length > 1 && lap === Math.max(...swLaps);
+                return (
+                  <div key={i} className={`flex items-center justify-between px-5 py-3 border-b last:border-b-0 ${dm ? "border-white/5" : "border-slate-50"}`}>
+                    <span className={`text-sm font-semibold w-12 ${dm ? "text-slate-400" : "text-slate-500"}`}>Lap {realIdx}</span>
+                    <span className={`text-xs tabular-nums ${dm ? "text-slate-500" : "text-slate-400"}`}>+{fmt(split)}</span>
+                    <span className={`text-sm font-black tabular-nums ${isBest ? "text-green-500" : isWorst ? "text-red-500" : dm ? "text-white" : "text-slate-900"}`}>
+                      {fmt(lap)} {isBest ? "🏆" : isWorst ? "🐢" : ""}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ─── FOCUS PAGE ─── */
 function Focus({ darkMode, setDarkMode, focusProps }) {
   const {
-    POMODORO_TIME, BREAK_TIME, LONG_BREAK_TIME,
     focusTime, setFocusTime,
     isRunning, setIsRunning,
     timerMode, setTimerMode,
@@ -200,13 +378,24 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
     timerRef,
   } = focusProps;
 
+  /* ─── CUSTOM DURATIONS (minutes) ─── */
+  const [pomodoroMin, setPomodoroMin] = useState(25);
+  const [breakMin, setBreakMin]       = useState(5);
+  const [longBreakMin, setLongBreakMin] = useState(15);
+
+  const POMODORO_TIME   = pomodoroMin * 60;
+  const BREAK_TIME      = breakMin * 60;
+  const LONG_BREAK_TIME = longBreakMin * 60;
+
   const minutes = Math.floor(focusTime / 60);
   const seconds = focusTime % 60;
 
   const [modal, setModal] = useState({ isOpen: false, type: null, editIndex: null });
+  const [timerSettingsOpen, setTimerSettingsOpen] = useState(false);
   const [confettiActive, setConfettiActive] = useState(false);
   const [goalReached, setGoalReached] = useState(false);
   const [timerOverlay, setTimerOverlay] = useState(false);
+  const [stopwatchOpen, setStopwatchOpen] = useState(false);
   const prevGoalReached = useRef(false);
 
   const quotes = [
@@ -251,6 +440,18 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
   const skipSession    = () => { clearInterval(timerRef.current); setIsRunning(false); setSessions((p) => p + 1); setTimerMode("Focus"); setCurrentTotal(POMODORO_TIME); setFocusTime(POMODORO_TIME); };
   const startBreak     = () => { clearInterval(timerRef.current); setIsRunning(false); setTimerMode("Break"); setCurrentTotal(BREAK_TIME); setFocusTime(BREAK_TIME); };
   const startLongBreak = () => { clearInterval(timerRef.current); setIsRunning(false); setTimerMode("Long Break"); setCurrentTotal(LONG_BREAK_TIME); setFocusTime(LONG_BREAK_TIME); };
+
+  /* When durations change, reset timer to new values if not running */
+  const handleSaveTimerSettings = (pom, brk, lng) => {
+    setPomodoroMin(pom);
+    setBreakMin(brk);
+    setLongBreakMin(lng);
+    if (!isRunning) {
+      if (timerMode === "Focus")      { setFocusTime(pom * 60); setCurrentTotal(pom * 60); }
+      if (timerMode === "Break")      { setFocusTime(brk * 60); setCurrentTotal(brk * 60); }
+      if (timerMode === "Long Break") { setFocusTime(lng * 60); setCurrentTotal(lng * 60); }
+    }
+  };
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) document.documentElement.requestFullscreen();
@@ -310,7 +511,11 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
   const focusLabel   = focusHours >= 1 ? `${focusHours}h` : `${Math.round(focusHours * 60)}m`;
   const { title: modalTitle, fields: modalFields } = getModalProps();
   const completedDots = sessions % 4;
-  const modeLabel = currentTotal === POMODORO_TIME ? "25 min" : currentTotal === BREAK_TIME ? "5 min" : "15 min";
+  const modeLabel = timerMode === "Focus"
+    ? `${pomodoroMin} min`
+    : timerMode === "Break"
+    ? `${breakMin} min`
+    : `${longBreakMin} min`;
 
   const dm = darkMode;
   const card      = dm ? "bg-[#1a1f35] border border-white/5" : "bg-white border border-slate-100 shadow-sm";
@@ -325,6 +530,18 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
     <>
       <Confetti active={confettiActive} />
       <Modal isOpen={modal.isOpen} title={modalTitle} fields={modalFields} onConfirm={handleModalConfirm} onCancel={closeModal} darkMode={darkMode} />
+
+      <StopwatchOverlay isOpen={stopwatchOpen} onClose={() => setStopwatchOpen(false)} darkMode={darkMode} />
+
+      <TimerSettingsModal
+        isOpen={timerSettingsOpen}
+        onClose={() => setTimerSettingsOpen(false)}
+        darkMode={darkMode}
+        pomodoroMin={pomodoroMin}
+        breakMin={breakMin}
+        longBreakMin={longBreakMin}
+        onSave={handleSaveTimerSettings}
+      />
 
       <TimerOverlay
         isOpen={timerOverlay}
@@ -353,10 +570,16 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
             <p className={`mt-1 ${textSub}`}>Stay focused, stay consistent.</p>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={toggleFullscreen} className={`rounded-2xl px-4 py-2.5 border transition-all flex items-center gap-2 font-semibold text-sm hover:scale-105 ${dm ? "bg-white/5 border-white/10 text-slate-300" : "bg-white border-slate-200 text-slate-600 shadow-sm"}`}>
+            <button onClick={() => setTimerSettingsOpen(true)}
+              className={`rounded-2xl px-4 py-2.5 border transition-all flex items-center gap-2 font-semibold text-sm hover:scale-105 ${dm ? "bg-white/5 border-white/10 text-slate-300" : "bg-white border-slate-200 text-slate-600 shadow-sm"}`}>
+              <FiSettings size={16} /> Timer Settings
+            </button>
+            <button onClick={toggleFullscreen}
+              className={`rounded-2xl px-4 py-2.5 border transition-all flex items-center gap-2 font-semibold text-sm hover:scale-105 ${dm ? "bg-white/5 border-white/10 text-slate-300" : "bg-white border-slate-200 text-slate-600 shadow-sm"}`}>
               <FiMaximize2 size={16} /> Fullscreen
             </button>
-            <button onClick={() => setDarkMode(!darkMode)} className={`rounded-2xl px-4 py-2.5 border transition-all font-semibold text-sm hover:scale-105 ${dm ? "bg-white/5 border-white/10 text-slate-300" : "bg-white border-slate-200 text-slate-600 shadow-sm"}`}>
+            <button onClick={() => setDarkMode(!darkMode)}
+              className={`rounded-2xl px-4 py-2.5 border transition-all font-semibold text-sm hover:scale-105 ${dm ? "bg-white/5 border-white/10 text-slate-300" : "bg-white border-slate-200 text-slate-600 shadow-sm"}`}>
               {dm ? "☀️ Light" : "🌙 Dark"}
             </button>
           </div>
@@ -380,7 +603,9 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
                         ? "bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg"
                         : dm ? "bg-white/10 text-slate-400 hover:bg-white/20" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                       }`}
-                    >{label}</button>
+                    >
+                      {label}
+                    </button>
                   ))}
                 </div>
                 <button
@@ -443,31 +668,15 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
                     <span className={`font-semibold text-sm ${textSub}`}>{label}</span>
                   </button>
                 ))}
-                <a href="https://open.spotify.com/playlist/37i9dQZF1DX8NTLI2TtZa6" target="_blank" rel="noopener noreferrer"
-                  className={`flex flex-col items-center justify-center gap-2 rounded-3xl h-24 hover:scale-105 transition-all ${dm ? "bg-pink-500/10 hover:bg-pink-500/20" : "bg-pink-50"}`}>
-                  <FiMusic className="text-pink-400" size={22} />
-                  <span className={`font-semibold text-sm ${textSub}`}>Focus Music</span>
-                </a>
+                <button
+                  onClick={() => setStopwatchOpen(true)}
+                  className={`flex flex-col items-center justify-center gap-2 rounded-3xl h-24 hover:scale-105 transition-all ${dm ? "bg-orange-500/10 hover:bg-orange-500/20" : "bg-orange-50"}`}>
+                  <FiClock className="text-orange-400" size={22} />
+                  <span className={`font-semibold text-sm ${textSub}`}>Stopwatch</span>
+                </button>
               </div>
             </div>
 
-            {/* STATS BAR */}
-            <div className={`rounded-[32px] px-8 py-5 flex flex-wrap gap-6 items-center justify-between ${card}`}>
-              {[
-                { emoji: "🔥", label: "Streak",          value: "7 Days" },
-                { emoji: "⏱️", label: "Pomodoros Today", value: `${sessions} Sessions` },
-                { emoji: "⭐", label: "Focus Score",     value: "85%" },
-              ].map(({ emoji, label, value }) => (
-                <div key={label} className="flex items-center gap-2">
-                  <span className="text-xl">{emoji}</span>
-                  <div>
-                    <p className={`text-xs ${textMuted}`}>{label}</p>
-                    <p className={`font-black text-sm ${textMain}`}>{value}</p>
-                  </div>
-                </div>
-              ))}
-              <p className={`text-sm italic ${textMuted}`}>Keep going! You're doing amazing! 💪</p>
-            </div>
           </div>
 
           {/* RIGHT PANEL */}

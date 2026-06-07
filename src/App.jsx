@@ -64,12 +64,17 @@ function App() {
     { title: "Mathematics", time: "25:00" },
   ]);
 
+  /* ── ANALYTICS STATE ── */
+  const [weekHistory, setWeekHistory] = useState([]);
+  const [currentWeek, setCurrentWeek] = useState(null);
+  const [streak, setStreak] = useState(0);
+
   const timerRef = useRef(null);
   const saveTimeoutRef = useRef(null);
   const snapshotUnsubRef = useRef(null);
   const isLoadingFromFirestore = useRef(false);
-  const timerStartedAt = useRef(null);  // Date.now() — ne zaman başladı
-  const timerStartValue = useRef(null); // başladığındaki kalan saniye
+  const timerStartedAt = useRef(null);
+  const timerStartValue = useRef(null);
 
   /* ── AUTH LISTENER ── */
   useEffect(() => {
@@ -105,6 +110,10 @@ function App() {
               if (data.sessions) setSessions(data.sessions);
               if (data.goalMinutes) setGoalMinutes(data.goalMinutes);
               if (data.sessionsList) setSessionsList(data.sessionsList);
+              // Analytics
+              if (data.weekHistory) setWeekHistory(data.weekHistory);
+              if (data.currentWeek) setCurrentWeek(data.currentWeek);
+              if (data.streak !== undefined) setStreak(data.streak);
             } else {
               setUserName(firebaseUser.displayName || "Student");
               setUserEmail(firebaseUser.email || "");
@@ -129,6 +138,9 @@ function App() {
         setCourses([]);
         setFocusHours(0);
         setSessions(0);
+        setWeekHistory([]);
+        setCurrentWeek(null);
+        setStreak(0);
       }
 
       setAuthLoading(false);
@@ -157,6 +169,7 @@ function App() {
   useEffect(() => { if (!user || dataLoading) return; scheduleSave({ courses }); }, [courses]);
   useEffect(() => { if (!user || dataLoading) return; scheduleSave({ userName, userEmail, themeColor, notifExams, notifTasks, notifFocus }); }, [userName, userEmail, themeColor, notifExams, notifTasks, notifFocus]);
   useEffect(() => { if (!user || dataLoading) return; scheduleSave({ focusHours, sessions, goalMinutes, sessionsList }); }, [focusHours, sessions, goalMinutes, sessionsList]);
+  useEffect(() => { if (!user || dataLoading) return; scheduleSave({ weekHistory, currentWeek, streak }); }, [weekHistory, currentWeek, streak]);
 
   /* ── SIGN OUT ── */
   const handleSignOut = async () => {
@@ -187,15 +200,13 @@ function App() {
     } catch (e) {}
   };
 
-  /* ── TIMER — Date.now() tabanlı, arka sekme sorunu yok ── */
+  /* ── TIMER ── */
   useEffect(() => {
     if (isRunning) {
-      // Başlangıç anını ve o anki kalan süreyi kaydet
       timerStartedAt.current = Date.now();
       timerStartValue.current = focusTime;
 
       timerRef.current = setInterval(() => {
-        // Gerçek geçen süreyi hesapla — setInterval'in yavaşlaması önemli değil
         const elapsed = Math.floor((Date.now() - timerStartedAt.current) / 1000);
         const remaining = timerStartValue.current - elapsed;
 
@@ -209,7 +220,7 @@ function App() {
         } else {
           setFocusTime(remaining);
         }
-      }, 500); // 500ms — arka sekmede bile yeterince sık
+      }, 500);
     }
     return () => clearInterval(timerRef.current);
   }, [isRunning]);
@@ -305,8 +316,17 @@ function App() {
       <Focus darkMode={darkMode} setDarkMode={setDarkMode} focusProps={focusProps} />
     );
     if (page === "analytics") return (
-      <Analytics tasks={tasks} courses={courses} exams={exams}
-        focusHours={focusHours} sessions={sessions} darkMode={darkMode} />
+      <Analytics
+        tasks={tasks}
+        courses={courses}
+        exams={exams}
+        focusHours={focusHours}
+        sessions={sessions}
+        darkMode={darkMode}
+        currentWeek={currentWeek}
+        weekHistory={weekHistory}
+        streak={streak}
+      />
     );
     if (page === "settings") return (
       <Settings darkMode={darkMode} setDarkMode={setDarkMode} settingsProps={settingsProps} />
