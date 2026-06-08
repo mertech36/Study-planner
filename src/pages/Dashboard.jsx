@@ -7,6 +7,49 @@ import {
 } from "react-icons/fi";
 import AIChat from "../components/AIChat";
 
+/* ─── Dynamic greeting based on time of day ─── */
+function getGreeting(name) {
+  const hour = new Date().getHours();
+  const firstName = name ? name.split(" ")[0] : "there";
+
+  const greetings = {
+    morning: [
+      { line1: "Rise and conquer,", line2: firstName },
+      { line1: "A new day, a new chapter,", line2: firstName },
+      { line1: "The early bird wins,", line2: firstName },
+      { line1: "Today is yours to own,", line2: firstName },
+    ],
+    afternoon: [
+      { line1: "Keep the momentum going,", line2: firstName },
+      { line1: "Halfway there, stay sharp,", line2: firstName },
+      { line1: "The grind continues,", line2: firstName },
+      { line1: "You are built different,", line2: firstName },
+    ],
+    evening: [
+      { line1: "One more push tonight,", line2: firstName },
+      { line1: "The night belongs to you,", line2: firstName },
+      { line1: "Champions work after dark,", line2: firstName },
+      { line1: "Finish strong today,", line2: firstName },
+    ],
+    night: [
+      { line1: "Still here, still grinding,", line2: firstName },
+      { line1: "While they sleep, you rise,", line2: firstName },
+      { line1: "Late nights build great minds,", line2: firstName },
+      { line1: "Quiet hours, loud progress,", line2: firstName },
+    ],
+  };
+
+  let pool;
+  if (hour >= 5  && hour < 12) pool = greetings.morning;
+  else if (hour >= 12 && hour < 17) pool = greetings.afternoon;
+  else if (hour >= 17 && hour < 21) pool = greetings.evening;
+  else pool = greetings.night;
+
+  // Pick one deterministically by day-of-year so it doesn't flicker on re-render
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+  return pool[dayOfYear % pool.length];
+}
+
 function Dashboard({
   tasks,
   setTasks,
@@ -16,10 +59,13 @@ function Dashboard({
   setTaskFilter,
   darkMode,
   setDarkMode,
+  userName = "",
 }) {
-  const totalTasks = tasks.length;
-  const completedTasks = tasks.filter((task) => task.completed).length;
-  const upcomingTasks = tasks.filter((task) => !task.completed);
+  const totalTasks     = tasks.length;
+  const completedTasks = tasks.filter((t) => t.completed).length;
+  const upcomingTasks  = tasks.filter((t) => !t.completed);
+
+  const greeting = getGreeting(userName);
 
   const toggleComplete = (id) => {
     setTasks(tasks.map((task) =>
@@ -29,9 +75,7 @@ function Dashboard({
     ));
   };
 
-  const deleteTask = (id) => {
-    setTasks(tasks.filter((task) => task.id !== id));
-  };
+  const deleteTask = (id) => setTasks(tasks.filter((t) => t.id !== id));
 
   const stats = [
     {
@@ -76,8 +120,8 @@ function Dashboard({
   ];
 
   const dm = darkMode;
-  const cardStyle = dm ? "bg-slate-800 border-slate-700" : "bg-white border-slate-100";
-  const textPrimary = dm ? "text-white" : "text-slate-900";
+  const cardStyle    = dm ? "bg-slate-800 border-slate-700" : "bg-white border-slate-100";
+  const textPrimary  = dm ? "text-white"     : "text-slate-900";
   const textSecondary = dm ? "text-slate-400" : "text-slate-500";
 
   return (
@@ -87,9 +131,9 @@ function Dashboard({
       <div className="flex items-start justify-between">
         <div>
           <h1 className={`text-5xl font-extrabold tracking-tight ${textPrimary}`}>
-            Welcome back 👋
+            {greeting.line1}
           </h1>
-          <p className={`mt-3 text-lg ${textSecondary}`}>
+          <p className={`mt-2 text-sm font-medium ${textSecondary}`}>
             {new Date().toDateString()}
           </p>
         </div>
@@ -146,7 +190,7 @@ function Dashboard({
           <div className="space-y-4">
             {upcomingTasks.length === 0 ? (
               <div className={`rounded-2xl p-6 text-center ${dm ? "bg-slate-700" : "bg-slate-50"}`}>
-                <p className={textSecondary}>No pending tasks 🎉</p>
+                <p className={textSecondary}>No pending tasks — you are crushing it.</p>
               </div>
             ) : (
               upcomingTasks.map((task) => (
@@ -159,9 +203,7 @@ function Dashboard({
                   }`}
                 >
                   <div className="flex-1 min-w-0 mr-4">
-                    <h3 className={`font-semibold text-lg truncate ${textPrimary}`}>
-                      {task.title}
-                    </h3>
+                    <h3 className={`font-semibold text-lg truncate ${textPrimary}`}>{task.title}</h3>
                     <p className={`text-sm mt-1 ${textSecondary}`}>{task.course}</p>
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">
@@ -248,7 +290,7 @@ function Dashboard({
         </div>
       </div>
 
-      {/* ── AI CHAT ── */}
+      {/* AI CHAT */}
       <AIChat darkMode={darkMode} />
 
     </div>

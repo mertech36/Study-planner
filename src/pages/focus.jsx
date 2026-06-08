@@ -249,17 +249,60 @@ function TimerOverlay({ isOpen, onClose, minutes, seconds, currentTotal, timerMo
   );
 }
 
-/* ─── STOPWATCH OVERLAY ─── */
-function StopwatchOverlay({ isOpen, onClose, darkMode }) {
+/* ─── FOCUS PAGE ─── */
+function Focus({ darkMode, setDarkMode, focusProps }) {
+  const {
+    focusTime, setFocusTime,
+    isRunning, setIsRunning,
+    timerMode, setTimerMode,
+    currentTotal, setCurrentTotal,
+    sessions, setSessions,
+    focusHours, setFocusHours,
+    goalMinutes, setGoalMinutes,
+    sessionsList, setSessionsList,
+    timerRef,
+    dailyFocusMinutes = 0,
+    setDailyFocusMinutes,
+    lastFocusDate = "",
+    setLastFocusDate,
+  } = focusProps;
+
+  /* ── Gün değişince dailyFocusMinutes sıfırla ── */
+  useEffect(() => {
+    const today = new Date().toISOString().split("T")[0];
+    if (lastFocusDate && lastFocusDate !== today && setDailyFocusMinutes) {
+      setDailyFocusMinutes(0);
+      if (setLastFocusDate) setLastFocusDate(today);
+    }
+  }, []);
+
+  /* ─── CUSTOM DURATIONS (minutes) ─── */
+  const [pomodoroMin, setPomodoroMin] = useState(25);
+  const [breakMin, setBreakMin]       = useState(5);
+  const [longBreakMin, setLongBreakMin] = useState(15);
+
+  const POMODORO_TIME   = pomodoroMin * 60;
+  const BREAK_TIME      = breakMin * 60;
+  const LONG_BREAK_TIME = longBreakMin * 60;
+
+  const minutes = Math.floor(focusTime / 60);
+  const seconds = focusTime % 60;
+
+  const [modal, setModal] = useState({ isOpen: false, type: null, editIndex: null });
+  const [timerSettingsOpen, setTimerSettingsOpen] = useState(false);
+  const [confettiActive, setConfettiActive] = useState(false);
+  const [goalReached, setGoalReached] = useState(false);
+  const [timerOverlay, setTimerOverlay] = useState(false);
+  const [stopwatchOpen, setStopwatchOpen] = useState(false);
   const [swTime, setSwTime] = useState(0);
   const [swRunning, setSwRunning] = useState(false);
   const [swLaps, setSwLaps] = useState([]);
   const swRef = useRef(null);
   const swStartedAt = useRef(null);
   const swAccumulated = useRef(0);
+  const prevGoalReached = useRef(false);
 
-  const dm = darkMode;
-
+  /* ── Stopwatch ── */
   useEffect(() => {
     if (swRunning) {
       swStartedAt.current = Date.now();
@@ -285,118 +328,16 @@ function StopwatchOverlay({ isOpen, onClose, darkMode }) {
   };
   const lapSw = () => setSwLaps((prev) => [...prev, swTime]);
 
-  const fmt = (ms) => {
-    const totalMs = Math.floor(ms % 1000);
-    const secs    = Math.floor(ms / 1000) % 60;
-    const mins    = Math.floor(ms / 60000) % 60;
-    const hrs     = Math.floor(ms / 3600000);
-    const pad = (n, d = 2) => String(n).padStart(d, "0");
+  const fmtSw = (ms) => {
+    const secs = Math.floor(ms / 1000) % 60;
+    const mins = Math.floor(ms / 60000) % 60;
+    const hrs  = Math.floor(ms / 3600000);
+    const cs   = Math.floor((ms % 1000) / 10);
+    const pad  = (n) => String(n).padStart(2, "0");
     return hrs > 0
-      ? `${pad(hrs)}:${pad(mins)}:${pad(secs)}.${pad(Math.floor(totalMs / 10))}`
-      : `${pad(mins)}:${pad(secs)}.${pad(Math.floor(totalMs / 10))}`;
+      ? `${pad(hrs)}:${pad(mins)}:${pad(secs)}.${pad(cs)}`
+      : `${pad(mins)}:${pad(secs)}.${pad(cs)}`;
   };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center">
-      <div className={`absolute inset-0 ${dm ? "bg-[#0a0f1e]" : "bg-gradient-to-br from-slate-100 via-orange-50 to-pink-100"}`} />
-
-      {/* Close button */}
-      <button onClick={onClose}
-        className={`absolute top-6 right-6 w-12 h-12 rounded-2xl flex items-center justify-center z-10 transition-all hover:scale-105 ${dm ? "bg-white/10 text-white hover:bg-white/20" : "bg-white text-slate-700 shadow-md hover:bg-slate-50"}`}>
-        <FiMinimize2 size={20} />
-      </button>
-
-      <div className="relative flex flex-col items-center gap-8 w-full max-w-md px-6">
-
-        {/* Title */}
-        <p className={`text-base font-semibold tracking-widest uppercase ${dm ? "text-slate-400" : "text-slate-500"}`}>Stopwatch</p>
-
-        {/* Big time display */}
-        <div className={`w-full rounded-[36px] py-12 flex items-center justify-center shadow-xl border ${dm ? "bg-white/5 border-white/10" : "bg-white border-slate-100"}`}>
-          <span className={`text-7xl font-black tabular-nums tracking-tight ${dm ? "text-white" : "text-slate-900"}`}>
-            {fmt(swTime)}
-          </span>
-        </div>
-
-        {/* Controls */}
-        <div className="flex gap-4 w-full">
-          <button onClick={resetSw}
-            className={`flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all ${dm ? "bg-white/10 text-slate-300 hover:bg-white/20" : "bg-white text-slate-600 shadow-md hover:bg-slate-50"}`}>
-            <FiRotateCcw size={17} /> Reset
-          </button>
-          <button onClick={swRunning ? pauseSw : startSw}
-            className="flex-1 bg-gradient-to-r from-orange-400 to-pink-500 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-xl hover:scale-105 transition-all text-base">
-            {swRunning ? <><FiPause size={18} /> Pause</> : <><FiPlay size={18} /> Start</>}
-          </button>
-          <button onClick={lapSw} disabled={swTime === 0}
-            className={`flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-40 ${dm ? "bg-white/10 text-slate-300 hover:bg-white/20" : "bg-white text-slate-600 shadow-md hover:bg-slate-50"}`}>
-            <FiSkipForward size={17} /> Lap
-          </button>
-        </div>
-
-        {/* Laps list */}
-        {swLaps.length > 0 && (
-          <div className={`w-full rounded-[24px] overflow-hidden border ${dm ? "bg-white/5 border-white/10" : "bg-white border-slate-100 shadow-sm"}`}>
-            <div className="max-h-52 overflow-y-auto">
-              {[...swLaps].reverse().map((lap, i) => {
-                const realIdx = swLaps.length - i;
-                const prev  = swLaps[realIdx - 2] || 0;
-                const split = lap - prev;
-                const isBest  = swLaps.length > 1 && lap === Math.min(...swLaps);
-                const isWorst = swLaps.length > 1 && lap === Math.max(...swLaps);
-                return (
-                  <div key={i} className={`flex items-center justify-between px-5 py-3 border-b last:border-b-0 ${dm ? "border-white/5" : "border-slate-50"}`}>
-                    <span className={`text-sm font-semibold w-12 ${dm ? "text-slate-400" : "text-slate-500"}`}>Lap {realIdx}</span>
-                    <span className={`text-xs tabular-nums ${dm ? "text-slate-500" : "text-slate-400"}`}>+{fmt(split)}</span>
-                    <span className={`text-sm font-black tabular-nums ${isBest ? "text-green-500" : isWorst ? "text-red-500" : dm ? "text-white" : "text-slate-900"}`}>
-                      {fmt(lap)} {isBest ? "🏆" : isWorst ? "🐢" : ""}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ─── FOCUS PAGE ─── */
-function Focus({ darkMode, setDarkMode, focusProps }) {
-  const {
-    focusTime, setFocusTime,
-    isRunning, setIsRunning,
-    timerMode, setTimerMode,
-    currentTotal, setCurrentTotal,
-    sessions, setSessions,
-    focusHours, setFocusHours,
-    goalMinutes, setGoalMinutes,
-    sessionsList, setSessionsList,
-    timerRef,
-  } = focusProps;
-
-  /* ─── CUSTOM DURATIONS (minutes) ─── */
-  const [pomodoroMin, setPomodoroMin] = useState(25);
-  const [breakMin, setBreakMin]       = useState(5);
-  const [longBreakMin, setLongBreakMin] = useState(15);
-
-  const POMODORO_TIME   = pomodoroMin * 60;
-  const BREAK_TIME      = breakMin * 60;
-  const LONG_BREAK_TIME = longBreakMin * 60;
-
-  const minutes = Math.floor(focusTime / 60);
-  const seconds = focusTime % 60;
-
-  const [modal, setModal] = useState({ isOpen: false, type: null, editIndex: null });
-  const [timerSettingsOpen, setTimerSettingsOpen] = useState(false);
-  const [confettiActive, setConfettiActive] = useState(false);
-  const [goalReached, setGoalReached] = useState(false);
-  const [timerOverlay, setTimerOverlay] = useState(false);
-  const [stopwatchOpen, setStopwatchOpen] = useState(false);
-  const prevGoalReached = useRef(false);
 
   const quotes = [
     "Discipline beats motivation.", "Small progress is still progress.",
@@ -420,9 +361,9 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
   });
   const [quote] = useState(quotes[quoteIndex]);
 
+  /* ── Daily goal reached check ── */
   useEffect(() => {
-    const focusMin = focusHours * 60;
-    const reached = focusMin >= goalMinutes;
+    const reached = dailyFocusMinutes >= goalMinutes && goalMinutes > 0;
     if (reached && !prevGoalReached.current) {
       setGoalReached(true);
       setConfettiActive(true);
@@ -430,7 +371,7 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
     }
     prevGoalReached.current = reached;
     if (!reached) setGoalReached(false);
-  }, [focusHours, goalMinutes]);
+  }, [dailyFocusMinutes, goalMinutes]);
 
   const formatTime = (t) => t.toString().padStart(2, "0");
 
@@ -441,7 +382,6 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
   const startBreak     = () => { clearInterval(timerRef.current); setIsRunning(false); setTimerMode("Break"); setCurrentTotal(BREAK_TIME); setFocusTime(BREAK_TIME); };
   const startLongBreak = () => { clearInterval(timerRef.current); setIsRunning(false); setTimerMode("Long Break"); setCurrentTotal(LONG_BREAK_TIME); setFocusTime(LONG_BREAK_TIME); };
 
-  /* When durations change, reset timer to new values if not running */
   const handleSaveTimerSettings = (pom, brk, lng) => {
     setPomodoroMin(pom);
     setBreakMin(brk);
@@ -506,9 +446,11 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
     return total + min + sec / 60;
   }, 0);
 
-  const goalProgress = Math.min((focusHours * 60 / goalMinutes) * 100, 100);
+  const goalProgress = Math.min((dailyFocusMinutes / goalMinutes) * 100, 100);
   const goalLabel    = goalMinutes % 60 === 0 ? `${goalMinutes / 60}h` : `${goalMinutes}m`;
-  const focusLabel   = focusHours >= 1 ? `${focusHours}h` : `${Math.round(focusHours * 60)}m`;
+  const focusLabel   = dailyFocusMinutes >= 60
+    ? `${Math.floor(dailyFocusMinutes / 60)}h ${dailyFocusMinutes % 60 > 0 ? `${dailyFocusMinutes % 60}m` : ""}`
+    : `${dailyFocusMinutes}m`;
   const { title: modalTitle, fields: modalFields } = getModalProps();
   const completedDots = sessions % 4;
   const modeLabel = timerMode === "Focus"
@@ -530,8 +472,6 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
     <>
       <Confetti active={confettiActive} />
       <Modal isOpen={modal.isOpen} title={modalTitle} fields={modalFields} onConfirm={handleModalConfirm} onCancel={closeModal} darkMode={darkMode} />
-
-      <StopwatchOverlay isOpen={stopwatchOpen} onClose={() => setStopwatchOpen(false)} darkMode={darkMode} />
 
       <TimerSettingsModal
         isOpen={timerSettingsOpen}
@@ -589,65 +529,127 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <div className="xl:col-span-2 space-y-5">
 
-            {/* TIMER CARD */}
+            {/* TIMER / STOPWATCH CARD */}
             <div className={`rounded-[32px] p-8 ${card}`}>
+
+              {/* Card header */}
               <div className="flex items-center justify-between mb-8">
-                <div className="flex gap-2">
-                  {[
-                    { label: "Focus",      action: resetTimer },
-                    { label: "Break",      action: startBreak },
-                    { label: "Long Break", action: startLongBreak },
-                  ].map(({ label, action }) => (
-                    <button key={label} onClick={action}
-                      className={`px-5 py-2 rounded-xl font-semibold text-sm transition-all ${timerMode === label
-                        ? "bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg"
-                        : dm ? "bg-white/10 text-slate-400 hover:bg-white/20" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
+                {stopwatchOpen ? (
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${dm ? "bg-orange-500/20" : "bg-orange-100"}`}>
+                      <FiClock className="text-orange-400" size={16} />
+                    </div>
+                    <span className={`text-lg font-black ${textMain}`}>Stopwatch</span>
+                    {swRunning && <span className="text-xs font-semibold text-green-400 animate-pulse">● Running</span>}
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    {[
+                      { label: "Focus",      action: resetTimer },
+                      { label: "Break",      action: startBreak },
+                      { label: "Long Break", action: startLongBreak },
+                    ].map(({ label, action }) => (
+                      <button key={label} onClick={action}
+                        className={`px-5 py-2 rounded-xl font-semibold text-sm transition-all ${timerMode === label
+                          ? "bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg"
+                          : dm ? "bg-white/10 text-slate-400 hover:bg-white/20" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <button
-                  onClick={() => setTimerOverlay(true)}
-                  title="Expand timer"
+                  onClick={() => {
+                    if (stopwatchOpen) { setStopwatchOpen(false); }
+                    else { setTimerOverlay(true); }
+                  }}
+                  title={stopwatchOpen ? "Close stopwatch" : "Expand timer"}
                   className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all hover:scale-110 ${dm ? "bg-white/10 text-slate-300 hover:bg-purple-500/30 hover:text-purple-300" : "bg-slate-100 text-slate-500 hover:bg-purple-100 hover:text-purple-600"}`}
                 >
-                  <FiMaximize2 size={17} />
+                  {stopwatchOpen ? <FiX size={17} /> : <FiMaximize2 size={17} />}
                 </button>
               </div>
 
-              <div className="flex flex-col items-center">
-                <div className="relative">
-                  <CircularTimer minutes={minutes} seconds={seconds} currentTotal={currentTotal} size={320} />
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <p className={`text-sm font-medium mb-1 ${textSub}`}>Focus Time</p>
-                    <h1 className={`text-6xl font-black tabular-nums ${textMain}`}>
-                      {formatTime(minutes)}:{formatTime(seconds)}
-                    </h1>
-                    <p className="text-purple-400 font-semibold mt-2 text-sm">{modeLabel}</p>
+              {stopwatchOpen ? (
+                /* ── STOPWATCH VIEW ── */
+                <div className="flex flex-col items-center">
+                  <div className={`w-full rounded-[28px] py-10 flex items-center justify-center mb-6 ${dm ? "bg-white/5" : "bg-slate-50"}`}>
+                    <span className={`text-7xl font-black tabular-nums tracking-tight ${dm ? "text-white" : "text-slate-900"}`}>
+                      {fmtSw(swTime)}
+                    </span>
+                  </div>
+                  <div className="flex gap-4">
+                    <button onClick={resetSw} className={`px-6 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all text-sm ${btnGhost}`}>
+                      <FiRotateCcw size={15} /> Reset
+                    </button>
+                    <button onClick={swRunning ? pauseSw : startSw}
+                      className="bg-gradient-to-r from-orange-400 to-pink-500 text-white px-10 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg hover:scale-105 transition-all">
+                      {swRunning ? <><FiPause /> Pause</> : <><FiPlay /> Start</>}
+                    </button>
+                    <button onClick={lapSw} disabled={swTime === 0}
+                      className={`px-6 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all text-sm disabled:opacity-40 ${btnGhost}`}>
+                      <FiSkipForward size={15} /> Lap
+                    </button>
+                  </div>
+                  {swLaps.length > 0 && (
+                    <div className={`w-full mt-6 rounded-[20px] overflow-hidden border ${dm ? "border-white/10" : "border-slate-100"}`}>
+                      <div className="max-h-40 overflow-y-auto">
+                        {[...swLaps].reverse().map((lap, i) => {
+                          const realIdx = swLaps.length - i;
+                          const prev    = swLaps[realIdx - 2] || 0;
+                          const split   = lap - prev;
+                          const isBest  = swLaps.length > 1 && lap === Math.min(...swLaps);
+                          const isWorst = swLaps.length > 2 && lap === Math.max(...swLaps);
+                          return (
+                            <div key={i} className={`flex items-center justify-between px-5 py-2.5 border-b last:border-b-0 ${dm ? "border-white/5" : "border-slate-50"}`}>
+                              <span className={`text-sm font-semibold w-14 ${dm ? "text-slate-400" : "text-slate-500"}`}>Lap {realIdx}</span>
+                              <span className={`text-xs tabular-nums ${dm ? "text-slate-500" : "text-slate-400"}`}>+{fmtSw(split)}</span>
+                              <span className={`text-sm font-black tabular-nums ${isBest ? "text-green-500" : isWorst ? "text-red-500" : dm ? "text-white" : "text-slate-900"}`}>
+                                {fmtSw(lap)} {isBest ? "🏆" : isWorst ? "🐢" : ""}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* ── POMODORO VIEW ── */
+                <div className="flex flex-col items-center">
+                  <div className="relative">
+                    <CircularTimer minutes={minutes} seconds={seconds} currentTotal={currentTotal} size={320} />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <p className={`text-sm font-medium mb-1 ${textSub}`}>Focus Time</p>
+                      <h1 className={`text-6xl font-black tabular-nums ${textMain}`}>
+                        {formatTime(minutes)}:{formatTime(seconds)}
+                      </h1>
+                      <p className="text-purple-400 font-semibold mt-2 text-sm">{modeLabel}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-4 mt-6">
+                    <button onClick={resetTimer} className={`px-6 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all text-sm ${btnGhost}`}>
+                      <FiRotateCcw size={15} /> Reset
+                    </button>
+                    <button onClick={isRunning ? pauseTimer : startTimer}
+                      className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-10 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg hover:scale-105 transition-all">
+                      {isRunning ? <><FiPause /> Pause</> : <><FiPlay /> Start</>}
+                    </button>
+                    <button onClick={skipSession} className={`px-6 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all text-sm ${btnGhost}`}>
+                      <FiSkipForward size={15} /> Skip
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2 mt-5">
+                    <span className={`text-sm ${textMuted}`}>Focus</span>
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className={`w-3 h-3 rounded-full transition-all ${i < completedDots ? "bg-purple-500" : dm ? "bg-white/15" : "bg-slate-200"}`} />
+                    ))}
+                    <span className={`text-sm ${textMuted}`}>{completedDots}/4</span>
                   </div>
                 </div>
-                <div className="flex gap-4 mt-6">
-                  <button onClick={resetTimer} className={`px-6 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all text-sm ${btnGhost}`}>
-                    <FiRotateCcw size={15} /> Reset
-                  </button>
-                  <button onClick={isRunning ? pauseTimer : startTimer}
-                    className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-10 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg hover:scale-105 transition-all">
-                    {isRunning ? <><FiPause /> Pause</> : <><FiPlay /> Start</>}
-                  </button>
-                  <button onClick={skipSession} className={`px-6 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all text-sm ${btnGhost}`}>
-                    <FiSkipForward size={15} /> Skip
-                  </button>
-                </div>
-                <div className="flex items-center gap-2 mt-5">
-                  <span className={`text-sm ${textMuted}`}>Focus</span>
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className={`w-3 h-3 rounded-full transition-all ${i < completedDots ? "bg-purple-500" : dm ? "bg-white/15" : "bg-slate-200"}`} />
-                  ))}
-                  <span className={`text-sm ${textMuted}`}>{completedDots}/4</span>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* QUICK ACTIONS */}
@@ -670,7 +672,11 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
                 ))}
                 <button
                   onClick={() => setStopwatchOpen(true)}
-                  className={`flex flex-col items-center justify-center gap-2 rounded-3xl h-24 hover:scale-105 transition-all ${dm ? "bg-orange-500/10 hover:bg-orange-500/20" : "bg-orange-50"}`}>
+                  className={`flex flex-col items-center justify-center gap-2 rounded-3xl h-24 hover:scale-105 transition-all ${
+                    stopwatchOpen
+                      ? dm ? "bg-orange-500/30 ring-2 ring-orange-400/40" : "bg-orange-100 ring-2 ring-orange-300"
+                      : dm ? "bg-orange-500/10 hover:bg-orange-500/20" : "bg-orange-50 hover:bg-orange-100"
+                  }`}>
                   <FiClock className="text-orange-400" size={22} />
                   <span className={`font-semibold text-sm ${textSub}`}>Stopwatch</span>
                 </button>
@@ -760,6 +766,7 @@ function Focus({ darkMode, setDarkMode, focusProps }) {
               </a>
               <p className={`text-center text-xs mt-2 ${textMuted}`}>Deep Focus · Intense Studying playlist</p>
             </div>
+
           </div>
         </div>
       </div>

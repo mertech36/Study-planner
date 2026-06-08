@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FiPlus, FiTrash2, FiCalendar, FiClock } from "react-icons/fi";
+import {FiTrash2, FiCalendar, FiClock } from "react-icons/fi";
 
 function Exams({ exams, setExams, darkMode }) {
   const [examTitle, setExamTitle] = useState("");
@@ -45,9 +45,6 @@ function Exams({ exams, setExams, darkMode }) {
           <div>
             <h2 className={`text-3xl font-bold ${textMain}`}>Add New Exam</h2>
             <p className={`mt-1 ${textSub}`}>Create a new exam reminder</p>
-          </div>
-          <div className={`w-16 h-16 rounded-3xl flex items-center justify-center ${dm ? "bg-orange-500/20" : "bg-orange-100"}`}>
-            <FiPlus className={dm ? "text-orange-400" : "text-orange-500"} size={28} />
           </div>
         </div>
 

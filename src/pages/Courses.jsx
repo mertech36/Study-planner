@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FiBookOpen, FiTrash2, FiPlus, FiFileText } from "react-icons/fi";
+import { FiBookOpen, FiTrash2,FiFileText } from "react-icons/fi";
 
 const COLOR_MAP = {
   blue:   { gradient: "from-blue-500 to-indigo-600",    btn: "bg-blue-500",    ring: "ring-blue-400" },
@@ -58,9 +58,6 @@ function Courses({ courses, setCourses, darkMode }) {
           <div>
             <h2 className={`text-xl font-black ${textMain}`}>Add New Course</h2>
             <p className={`text-sm mt-0.5 ${textSub}`}>Create a new subject workspace</p>
-          </div>
-          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${dm ? "bg-purple-500/20" : "bg-purple-100"}`}>
-            <FiPlus className={dm ? "text-purple-400" : "text-purple-600"} size={20} />
           </div>
         </div>
 

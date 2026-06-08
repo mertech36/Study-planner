@@ -69,6 +69,10 @@ function App() {
   const [currentWeek, setCurrentWeek] = useState(null);
   const [streak, setStreak] = useState(0);
 
+  /* ── DAILY FOCUS (sıfırlanır her gün) ── */
+  const [dailyFocusMinutes, setDailyFocusMinutes] = useState(0);
+  const [lastFocusDate, setLastFocusDate] = useState("");
+
   const timerRef = useRef(null);
   const saveTimeoutRef = useRef(null);
   const snapshotUnsubRef = useRef(null);
@@ -114,6 +118,9 @@ function App() {
               if (data.weekHistory) setWeekHistory(data.weekHistory);
               if (data.currentWeek) setCurrentWeek(data.currentWeek);
               if (data.streak !== undefined) setStreak(data.streak);
+              // Daily focus
+              if (data.dailyFocusMinutes !== undefined) setDailyFocusMinutes(data.dailyFocusMinutes);
+              if (data.lastFocusDate) setLastFocusDate(data.lastFocusDate);
             } else {
               setUserName(firebaseUser.displayName || "Student");
               setUserEmail(firebaseUser.email || "");
@@ -141,6 +148,8 @@ function App() {
         setWeekHistory([]);
         setCurrentWeek(null);
         setStreak(0);
+        setDailyFocusMinutes(0);
+        setLastFocusDate("");
       }
 
       setAuthLoading(false);
@@ -170,6 +179,7 @@ function App() {
   useEffect(() => { if (!user || dataLoading) return; scheduleSave({ userName, userEmail, themeColor, notifExams, notifTasks, notifFocus }); }, [userName, userEmail, themeColor, notifExams, notifTasks, notifFocus]);
   useEffect(() => { if (!user || dataLoading) return; scheduleSave({ focusHours, sessions, goalMinutes, sessionsList }); }, [focusHours, sessions, goalMinutes, sessionsList]);
   useEffect(() => { if (!user || dataLoading) return; scheduleSave({ weekHistory, currentWeek, streak }); }, [weekHistory, currentWeek, streak]);
+  useEffect(() => { if (!user || dataLoading) return; scheduleSave({ dailyFocusMinutes, lastFocusDate }); }, [dailyFocusMinutes, lastFocusDate]);
 
   /* ── SIGN OUT ── */
   const handleSignOut = async () => {
@@ -216,6 +226,16 @@ function App() {
           setIsRunning(false);
           setSessions((p) => p + 1);
           setFocusHours((p) => Number((p + 0.42).toFixed(2)));
+          // Günlük takip — her tamamlanan pomodoro ~25 dk (ya da mevcut currentTotal)
+          const today = new Date().toISOString().split("T")[0];
+          setLastFocusDate((prev) => {
+            if (prev !== today) {
+              setDailyFocusMinutes(Math.round(POMODORO_TIME / 60));
+            } else {
+              setDailyFocusMinutes((m) => m + Math.round(POMODORO_TIME / 60));
+            }
+            return today;
+          });
           playAlarm();
         } else {
           setFocusTime(remaining);
@@ -248,6 +268,10 @@ function App() {
     setSessionsList,
     timerRef,
     playAlarm,
+    dailyFocusMinutes,
+    setDailyFocusMinutes,
+    lastFocusDate,
+    setLastFocusDate,
   };
 
   const settingsProps = {
@@ -300,7 +324,8 @@ function App() {
   const renderPage = () => {
     if (page === "dashboard") return (
       <Dashboard tasks={tasks} setTasks={setTasks} exams={exams} courses={courses}
-        setPage={setPage} setTaskFilter={setTaskFilter} darkMode={darkMode} setDarkMode={setDarkMode} />
+        setPage={setPage} setTaskFilter={setTaskFilter} darkMode={darkMode} setDarkMode={setDarkMode}
+        userName={userName} />
     );
     if (page === "tasks") return (
       <Tasks tasks={tasks} setTasks={setTasks} taskFilter={taskFilter}
