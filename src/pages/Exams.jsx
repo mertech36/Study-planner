@@ -1,156 +1,306 @@
-import { useState } from "react";
-import {FiTrash2, FiCalendar, FiClock } from "react-icons/fi";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { FiTrash2, FiCalendar, FiClock } from "react-icons/fi";
+
+/* ---------- Yardımcı fonksiyonlar ---------- */
+
+// "2026-10-07" -> yerel saatle Date (UTC kayması olmasın diye)
+function parseDate(value) {
+  if (!value) return null;
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00`) : new Date(value);
+  return isNaN(d) ? null : d;
+}
+
+function formatDate(value) {
+  const d = parseDate(value);
+  return d
+    ? d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })
+    : value;
+}
+
+function startOfToday() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+// Sınavın tam zamanı (saat yoksa günün sonu sayılır)
+function examDateTime(exam) {
+  const d = parseDate(exam.examDate);
+  if (!d) return null;
+  if (exam.examHour && /^\d{2}:\d{2}$/.test(exam.examHour)) {
+    const [h, m] = exam.examHour.split(":").map(Number);
+    d.setHours(h, m, 0, 0);
+  } else {
+    d.setHours(23, 59, 59, 999);
+  }
+  return d;
+}
+
+// Gün farkı: yaz/kış saati geçişlerinde şaşmasın diye round kullanılır
+function daysUntil(exam) {
+  const d = parseDate(exam.examDate);
+  if (!d) return null;
+  return Math.round((d - startOfToday()) / 86400000);
+}
+
+function isPassed(exam) {
+  const dt = examDateTime(exam);
+  return dt ? dt < new Date() : false;
+}
+
+function daysLabel(exam) {
+  const days = daysUntil(exam);
+  if (days === null) return "No date";
+  if (isPassed(exam)) return "Passed";
+  if (days === 0) return "Today";
+  return `${days} day${days === 1 ? "" : "s"} left`;
+}
+
+function daysTone(exam) {
+  const days = daysUntil(exam);
+  if (days === null || isPassed(exam)) return "passed";
+  if (days <= 3) return "urgent";
+  if (days <= 7) return "soon";
+  return "later";
+}
+
+const FILTERS = [
+  { id: "upcoming", label: "Upcoming" },
+  { id: "passed", label: "Passed" },
+  { id: "all", label: "All" },
+];
+
+/* ---------- Bileşen ---------- */
 
 function Exams({ exams, setExams, darkMode }) {
-  const [examTitle, setExamTitle] = useState("");
-  const [examDate, setExamDate]   = useState("");
-  const [examHour, setExamHour]   = useState("");
-  const [notes, setNotes]         = useState("");
+  const [form, setForm] = useState({ examTitle: "", examDate: "", examHour: "", notes: "" });
+  const [error, setError] = useState("");
+  const [filter, setFilter] = useState("upcoming");
+  const [toast, setToast] = useState(null);
+  const toastTimer = useRef(null);
 
-  const dm = darkMode;
+  useEffect(() => () => clearTimeout(toastTimer.current), []);
+
+  const setField = (key) => (e) => {
+    setForm((f) => ({ ...f, [key]: e.target.value }));
+    if (error) setError("");
+  };
+
+  const showToast = (message, undo) => {
+    clearTimeout(toastTimer.current);
+    setToast({ message, undo });
+    toastTimer.current = setTimeout(() => setToast(null), 5000);
+  };
 
   const addExam = () => {
-    if (!examTitle || !examDate) return;
-    setExams([...exams, { id: Date.now(), examTitle, examDate, examHour, notes }]);
-    setExamTitle(""); setExamDate(""); setExamHour(""); setNotes("");
+    const examTitle = form.examTitle.trim();
+    if (!examTitle) { setError("Enter an exam title."); return; }
+    if (!form.examDate) { setError("Pick the exam date."); return; }
+    setExams((prev) => [
+      ...prev,
+      { id: Date.now(), examTitle, examDate: form.examDate, examHour: form.examHour, notes: form.notes.trim() },
+    ]);
+    setForm({ examTitle: "", examDate: "", examHour: "", notes: "" });
+    setError("");
   };
 
-  const deleteExam = (id) => setExams(exams.filter((e) => e.id !== id));
-
-  const getDaysLeft = (date) => {
-    const diff = new Date(date).getTime() - new Date().getTime();
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  const deleteExam = (id) => {
+    const index = exams.findIndex((e) => e.id === id);
+    if (index === -1) return;
+    const exam = exams[index];
+    setExams((prev) => prev.filter((e) => e.id !== id));
+    showToast(`Deleted "${exam.examTitle}"`, () => {
+      setExams((prev) => {
+        const copy = [...prev];
+        copy.splice(Math.min(index, copy.length), 0, exam);
+        return copy;
+      });
+      setToast(null);
+    });
   };
 
-  const cardForm = dm ? "bg-[#1a1f35] border border-white/5" : "bg-white/70 backdrop-blur-xl border border-white/40";
-  const card     = dm ? "bg-[#1a1f35] border border-white/5" : "bg-white border border-slate-100";
-  const input    = dm
-    ? "bg-white/5 border border-white/10 text-white placeholder-slate-500 rounded-2xl px-5 py-4 outline-none focus:ring-4 focus:ring-orange-500/20 focus:border-orange-400 transition-all w-full"
-    : "bg-white border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:ring-4 focus:ring-orange-100 transition-all w-full";
-  const textMain = dm ? "text-white"     : "text-slate-900";
-  const textSub  = dm ? "text-slate-400" : "text-slate-500";
+  // Yaklaşanlar en yakından uzağa, geçmişler en yeniden eskiye
+  const { visible, counts } = useMemo(() => {
+    const byTime = (a, b) => (examDateTime(a) || 0) - (examDateTime(b) || 0);
+    const upcoming = exams.filter((e) => !isPassed(e)).sort(byTime);
+    const passed = exams.filter(isPassed).sort((a, b) => byTime(b, a));
+    const list = filter === "upcoming" ? upcoming : filter === "passed" ? passed : [...upcoming, ...passed];
+    return { visible: list, counts: { upcoming: upcoming.length, passed: passed.length, all: exams.length } };
+  }, [exams, filter]);
+
+  const emptyMessage =
+    exams.length === 0 ? "No exams added yet 📝"
+    : filter === "upcoming" ? "No upcoming exams."
+    : "No passed exams.";
 
   return (
-    <div className="space-y-8">
+    <div className={`ex ${darkMode ? "dark" : "light"}`}>
+      <style>{css}</style>
 
-      {/* HEADER */}
-      <div>
-        <h1 className={`text-5xl font-extrabold ${textMain}`}>Exams</h1>
-        <p className={`mt-3 text-lg ${textSub}`}>Track your upcoming exams and deadlines.</p>
-      </div>
+      <div className="ex-inner">
+        <header>
+          <h1>Exams</h1>
+          <p className="muted small">Track your upcoming exams and deadlines.</p>
+        </header>
 
-      {/* ADD EXAM */}
-      <div className={`${cardForm} rounded-[32px] p-8 shadow-xl`}>
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className={`text-3xl font-bold ${textMain}`}>Add New Exam</h2>
-            <p className={`mt-1 ${textSub}`}>Create a new exam reminder</p>
+        {/* Ekleme formu */}
+        <section className="card" aria-labelledby="add-exam-title">
+          <h2 id="add-exam-title">Add new exam</h2>
+          <p className="muted xs">Title and date are required.</p>
+
+          <div className="ex-form">
+            <input type="text" placeholder="Exam title" aria-label="Exam title"
+              value={form.examTitle} onChange={setField("examTitle")}
+              onKeyDown={(e) => e.key === "Enter" && addExam()} />
+            <input type="date" aria-label="Exam date" value={form.examDate} onChange={setField("examDate")} />
+            <input type="time" aria-label="Exam time (optional)" value={form.examHour} onChange={setField("examHour")} />
+            <input type="text" placeholder="Notes (optional)" aria-label="Notes"
+              value={form.notes} onChange={setField("notes")}
+              onKeyDown={(e) => e.key === "Enter" && addExam()} />
           </div>
+
+          {error && <p className="ex-error" role="alert">{error}</p>}
+          <button className="ex-primary" onClick={addExam}>Add exam</button>
+        </section>
+
+        {/* Filtre */}
+        <div className="ex-chips" role="group" aria-label="Filter exams">
+          {FILTERS.map((f) => (
+            <button key={f.id} className={`ex-chip ${filter === f.id ? "active" : ""}`}
+              onClick={() => setFilter(f.id)} aria-pressed={filter === f.id}>
+              {f.label} <span className="count">{counts[f.id]}</span>
+            </button>
+          ))}
         </div>
 
-        {/* INPUTS: Title | Date | Hour | Notes */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          <input
-            type="text" placeholder="Exam title"
-            value={examTitle} onChange={(e) => setExamTitle(e.target.value)}
-            className={input}
-          />
-          <input
-            type="date"
-            value={examDate} onChange={(e) => setExamDate(e.target.value)}
-            className={input}
-          />
-          <input
-            type="time"
-            value={examHour} onChange={(e) => setExamHour(e.target.value)}
-            className={input}
-          />
-          <input
-            type="text" placeholder="Notes (optional)"
-            value={notes} onChange={(e) => setNotes(e.target.value)}
-            className={input}
-          />
-        </div>
-
-        <button
-          onClick={addExam}
-          className="mt-6 bg-gradient-to-r from-orange-500 to-red-500 text-white px-7 py-4 rounded-2xl font-bold shadow-xl hover:scale-[1.02] transition-all duration-300"
-        >
-          Add Exam
-        </button>
-      </div>
-
-      {/* EXAMS GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {exams.length === 0 ? (
-          <div className={`col-span-full ${card} rounded-3xl p-12 text-center shadow-sm`}>
-            <p className={`text-lg ${textSub}`}>No exams added yet 📝</p>
-          </div>
+        {/* Kartlar */}
+        {visible.length === 0 ? (
+          <div className="card ex-empty">{emptyMessage}</div>
         ) : (
-          exams.map((exam) => {
-            const daysLeft = getDaysLeft(exam.examDate);
-            const urgent   = daysLeft <= 7;
-            return (
-              <div key={exam.id}
-                className={`${card} rounded-[32px] p-7 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden`}
-              >
-                {/* TOP BAR */}
-                <div className="absolute top-0 left-0 h-2 w-full bg-gradient-to-r from-orange-400 to-red-500" />
-
-                {/* HEADER ROW */}
-                <div className="flex items-center justify-between mt-2">
-                  <div className={`w-14 h-14 rounded-3xl flex items-center justify-center ${dm ? "bg-orange-500/20" : "bg-orange-100"}`}>
-                    <FiCalendar className={dm ? "text-orange-400" : "text-orange-500"} size={26} />
-                  </div>
-                  <button
-                    onClick={() => deleteExam(exam.id)}
-                    className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300 ${dm ? "bg-white/10 text-slate-400 hover:bg-red-500 hover:text-white" : "bg-slate-100 text-slate-500 hover:bg-red-500 hover:text-white"}`}
-                  >
-                    <FiTrash2 size={17} />
-                  </button>
-                </div>
-
-                {/* CONTENT */}
-                <div className="mt-6">
-                  <h2 className={`text-2xl font-bold ${textMain}`}>{exam.examTitle}</h2>
-
-                  {/* DATE + HOUR */}
-                  <div className="mt-4 flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-2 text-orange-400 font-semibold text-sm">
-                      <FiCalendar size={14} />
-                      <span>{exam.examDate}</span>
+          <ul className="ex-grid">
+            {visible.map((exam) => {
+              const tone = daysTone(exam);
+              return (
+                <li key={exam.id} className={`ex-card tone-${tone}`}>
+                  <div className="ex-bar" />
+                  <div className="ex-body">
+                    <div className="ex-top">
+                      <span className="ex-icon"><FiCalendar size={16} aria-hidden="true" /></span>
+                      <button className="ex-del" onClick={() => deleteExam(exam.id)}
+                        aria-label={`Delete ${exam.examTitle}`}>
+                        <FiTrash2 size={12} aria-hidden="true" />
+                      </button>
                     </div>
-                    {exam.examHour && (
-                      <div className="flex items-center gap-2 text-orange-400 font-semibold text-sm">
-                        <FiClock size={14} />
-                        <span>{exam.examHour}</span>
-                      </div>
-                    )}
-                  </div>
 
-                  {/* DAYS LEFT */}
-                  <div className={`mt-4 inline-flex px-4 py-1.5 rounded-full font-bold text-sm ${
-                    urgent
-                      ? dm ? "bg-red-500/20 text-red-400" : "bg-red-100 text-red-600"
-                      : dm ? "bg-orange-500/20 text-orange-400" : "bg-orange-100 text-orange-600"
-                  }`}>
-                    {daysLeft > 0 ? `${daysLeft} days left` : daysLeft === 0 ? "Today! 🔥" : "Passed"}
-                  </div>
+                    <h3>{exam.examTitle}</h3>
 
-                  {/* NOTES */}
-                  {exam.notes && (
-                    <div className={`mt-5 rounded-2xl p-4 ${dm ? "bg-white/5" : "bg-slate-50"}`}>
-                      <p className={`text-sm ${textSub}`}>{exam.notes}</p>
+                    <div className="ex-when">
+                      <span><FiCalendar size={12} aria-hidden="true" /> {formatDate(exam.examDate)}</span>
+                      {exam.examHour && <span><FiClock size={12} aria-hidden="true" /> {exam.examHour}</span>}
                     </div>
-                  )}
-                </div>
-              </div>
-            );
-          })
+
+                    <span className="ex-days">{daysLabel(exam)}</span>
+
+                    {exam.notes && <div className="ex-notes">{exam.notes}</div>}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
+
+      {toast && (
+        <div className="ex-toast" role="status">
+          <span>{toast.message}</span>
+          <button onClick={toast.undo}>Undo</button>
+        </div>
+      )}
     </div>
   );
 }
+
+/* ---------- Stiller ---------- */
+
+const css = `
+.ex {
+  --page-bg: #FDE8D8; --card-bg: #FFFFFF; --card-alt: #FAF3EC; --border: #EDD9C8;
+  --text: #1A0E05; --muted: #9C7A5A; --orange: #C85A1A; --input-bg: #FAF3EC;
+  --danger: #C0392B; --danger-bg: #FEE8E8; --icon-bg: #FDEEE4;
+  --urgent-bg: #FEE8E8; --soon-bg: #FDEEE4; --later-bg: #EEF2FF; --later: #3949AB; --passed-bg: #F5F5F5;
+  background: var(--page-bg); color: var(--text);
+  min-height: 100vh; width: 100%; font-family: Inter, sans-serif; transition: background .3s;
+}
+.ex.dark {
+  --page-bg: #1A110A; --card-bg: #2A1A0F; --card-alt: #241508; --border: #3D2410;
+  --text: #F5E6D5; --muted: #8C6A4A; --input-bg: #1A110A;
+  --danger-bg: #4A1A1A; --icon-bg: #3D2410;
+  --urgent-bg: #3D1010; --soon-bg: #3D2410; --later-bg: #1A1A3D; --passed-bg: #2A2A2A;
+}
+.ex *, .ex *::before, .ex *::after { box-sizing: border-box; }
+.ex button, .ex input { font-family: inherit; }
+.ex h1, .ex h2, .ex h3, .ex p, .ex ul { margin: 0; padding: 0; }
+.ex ul { list-style: none; }
+.ex :focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+
+.ex-inner { padding: 28px 40px 40px 80px; display: flex; flex-direction: column; gap: 20px; }
+.ex h1 { font-size: 26px; font-weight: 700; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; margin-top: 4px; }
+.xs { font-size: 12px; }
+
+.card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 20px 24px; }
+.card h2 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.card.ex-empty { text-align: center; color: var(--muted); font-size: 14px; padding: 32px 0; border-radius: 12px; }
+
+.ex input { width: 100%; padding: 9px 13px; border-radius: 10px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); font-size: 13px; }
+.ex-form { display: grid; grid-template-columns: 2fr 1fr 1fr 2fr; gap: 10px; margin-top: 14px; }
+.ex-error { color: var(--danger); font-size: 12px; margin-top: 8px; }
+.ex-primary { margin-top: 12px; padding: 9px 20px; border-radius: 10px; border: none; background: var(--orange); color: #FFF; font-weight: 700; font-size: 13px; cursor: pointer; }
+.ex-primary:hover { filter: brightness(1.08); }
+
+.ex-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.ex-chip { padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border); background: none; color: var(--muted); font-weight: 600; font-size: 12px; cursor: pointer; transition: all .15s; }
+.ex-chip .count { margin-left: 4px; opacity: .8; }
+.ex-chip.active { background: var(--orange); border-color: var(--orange); color: #FFF; }
+
+.ex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.ex-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.ex-card.tone-passed { opacity: .7; }
+.ex-bar { height: 3px; background: var(--muted); }
+.tone-urgent .ex-bar, .tone-soon .ex-bar { background: var(--orange); }
+.ex-body { padding: 16px 18px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.ex-top { display: flex; align-items: flex-start; justify-content: space-between; width: 100%; margin-bottom: 2px; }
+.ex-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--icon-bg); color: var(--orange); display: flex; align-items: center; justify-content: center; }
+.ex-del { width: 28px; height: 28px; border-radius: 8px; border: none; background: var(--danger-bg); color: var(--danger); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.ex-card h3 { font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
+.ex-when { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.ex-when span { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--orange); }
+
+.ex-days { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.tone-urgent .ex-days { background: var(--urgent-bg); color: var(--danger); }
+.tone-soon .ex-days { background: var(--soon-bg); color: var(--orange); }
+.tone-later .ex-days { background: var(--later-bg); color: var(--later); }
+.tone-passed .ex-days { background: var(--passed-bg); color: var(--muted); }
+
+.ex-notes { width: 100%; margin-top: 2px; padding: 8px 12px; border-radius: 8px; background: var(--card-alt); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+
+.ex-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 16px; max-width: calc(100% - 32px); padding: 12px 18px; border-radius: 12px; background: #1A0E05; color: #F5E6D5; font-size: 13px; box-shadow: 0 6px 24px rgba(0,0,0,.25); z-index: 40; }
+.dark .ex-toast { background: #F5E6D5; color: #1A0E05; }
+.ex-toast button { background: none; border: none; color: #F0A272; font-weight: 700; font-size: 13px; cursor: pointer; }
+.dark .ex-toast button { color: #C85A1A; }
+
+@media (max-width: 900px) {
+  .ex-inner { padding: 20px 20px 32px 76px; }
+  .ex-form { grid-template-columns: 1fr 1fr; }
+  .ex-form > :first-child { grid-column: 1 / -1; }
+}
+@media (max-width: 520px) {
+  .ex-inner { padding: 16px 12px 28px 64px; }
+  .ex h1 { font-size: 21px; }
+  .ex-form { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .ex, .ex-chip { transition: none; } }
+`;
 
 export default Exams;

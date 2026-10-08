@@ -25,32 +25,27 @@ async function saveUserData(uid, data) {
 }
 
 function App() {
-  /* ── AUTH ── */
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
   const [authScreen, setAuthScreen] = useState("login");
 
-  /* ── APP STATE ── */
   const [page, setPage] = useState("dashboard");
   const [darkMode, setDarkMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [taskFilter, setTaskFilter] = useState("all");
 
-  /* ── USER DATA ── */
   const [tasks, setTasks] = useState([]);
   const [exams, setExams] = useState([]);
   const [courses, setCourses] = useState([]);
 
-  /* ── SETTINGS ── */
   const [userName, setUserName] = useState("Alex Johnson");
   const [userEmail, setUserEmail] = useState("");
-  const [themeColor, setThemeColor] = useState("blue");
+  const [themeColor, setThemeColor] = useState("orange");
   const [notifExams, setNotifExams] = useState(true);
   const [notifTasks, setNotifTasks] = useState(false);
   const [notifFocus, setNotifFocus] = useState(true);
 
-  /* ── TIMER STATE ── */
   const [focusTime, setFocusTime] = useState(POMODORO_TIME);
   const [isRunning, setIsRunning] = useState(false);
   const [timerMode, setTimerMode] = useState("Focus");
@@ -64,12 +59,9 @@ function App() {
     { title: "Mathematics", time: "25:00" },
   ]);
 
-  /* ── ANALYTICS STATE ── */
   const [weekHistory, setWeekHistory] = useState([]);
   const [currentWeek, setCurrentWeek] = useState(null);
   const [streak, setStreak] = useState(0);
-
-  /* ── DAILY FOCUS (sıfırlanır her gün) ── */
   const [dailyFocusMinutes, setDailyFocusMinutes] = useState(0);
   const [lastFocusDate, setLastFocusDate] = useState("");
 
@@ -80,63 +72,52 @@ function App() {
   const timerStartedAt = useRef(null);
   const timerStartValue = useRef(null);
 
-  /* ── AUTH LISTENER ── */
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (firebaseUser) => {
       if (snapshotUnsubRef.current) {
         snapshotUnsubRef.current();
         snapshotUnsubRef.current = null;
       }
-
       if (firebaseUser) {
         setUser(firebaseUser);
         setDataLoading(true);
         isLoadingFromFirestore.current = true;
-
         const ref = doc(db, "users", firebaseUser.uid);
-
-        const unsubSnapshot = onSnapshot(
-          ref,
-          (snap) => {
-            isLoadingFromFirestore.current = true;
-            if (snap.exists()) {
-              const data = snap.data();
-              if (data.tasks) setTasks(data.tasks);
-              if (data.exams) setExams(data.exams);
-              if (data.courses) setCourses(data.courses);
-              if (data.userName) setUserName(data.userName);
-              if (data.userEmail) setUserEmail(data.userEmail);
-              if (data.themeColor) setThemeColor(data.themeColor);
-              if (data.notifExams !== undefined) setNotifExams(data.notifExams);
-              if (data.notifTasks !== undefined) setNotifTasks(data.notifTasks);
-              if (data.notifFocus !== undefined) setNotifFocus(data.notifFocus);
-              if (data.focusHours) setFocusHours(data.focusHours);
-              if (data.sessions) setSessions(data.sessions);
-              if (data.goalMinutes) setGoalMinutes(data.goalMinutes);
-              if (data.sessionsList) setSessionsList(data.sessionsList);
-              // Analytics
-              if (data.weekHistory) setWeekHistory(data.weekHistory);
-              if (data.currentWeek) setCurrentWeek(data.currentWeek);
-              if (data.streak !== undefined) setStreak(data.streak);
-              // Daily focus
-              if (data.dailyFocusMinutes !== undefined) setDailyFocusMinutes(data.dailyFocusMinutes);
-              if (data.lastFocusDate) setLastFocusDate(data.lastFocusDate);
-            } else {
-              setUserName(firebaseUser.displayName || "Student");
-              setUserEmail(firebaseUser.email || "");
-            }
-            setTimeout(() => {
-              isLoadingFromFirestore.current = false;
-              setDataLoading(false);
-            }, 300);
-          },
-          (err) => {
-            console.error("Snapshot hatası:", err);
+        const unsubSnapshot = onSnapshot(ref, (snap) => {
+          isLoadingFromFirestore.current = true;
+          if (snap.exists()) {
+            const data = snap.data();
+            if (data.tasks) setTasks(data.tasks);
+            if (data.exams) setExams(data.exams);
+            if (data.courses) setCourses(data.courses);
+            if (data.userName) setUserName(data.userName);
+            if (data.userEmail) setUserEmail(data.userEmail);
+            if (data.themeColor) setThemeColor(data.themeColor);
+            if (data.notifExams !== undefined) setNotifExams(data.notifExams);
+            if (data.notifTasks !== undefined) setNotifTasks(data.notifTasks);
+            if (data.notifFocus !== undefined) setNotifFocus(data.notifFocus);
+            if (data.focusHours) setFocusHours(data.focusHours);
+            if (data.sessions) setSessions(data.sessions);
+            if (data.goalMinutes) setGoalMinutes(data.goalMinutes);
+            if (data.sessionsList) setSessionsList(data.sessionsList);
+            if (data.weekHistory) setWeekHistory(data.weekHistory);
+            if (data.currentWeek) setCurrentWeek(data.currentWeek);
+            if (data.streak !== undefined) setStreak(data.streak);
+            if (data.dailyFocusMinutes !== undefined) setDailyFocusMinutes(data.dailyFocusMinutes);
+            if (data.lastFocusDate) setLastFocusDate(data.lastFocusDate);
+          } else {
+            setUserName(firebaseUser.displayName || "Student");
+            setUserEmail(firebaseUser.email || "");
+          }
+          setTimeout(() => {
             isLoadingFromFirestore.current = false;
             setDataLoading(false);
-          }
-        );
-
+          }, 300);
+        }, (err) => {
+          console.error("Snapshot hatası:", err);
+          isLoadingFromFirestore.current = false;
+          setDataLoading(false);
+        });
         snapshotUnsubRef.current = unsubSnapshot;
       } else {
         setUser(null);
@@ -151,25 +132,20 @@ function App() {
         setDailyFocusMinutes(0);
         setLastFocusDate("");
       }
-
       setAuthLoading(false);
     });
-
     return () => {
       unsub();
       if (snapshotUnsubRef.current) snapshotUnsubRef.current();
     };
   }, []);
 
-  /* ── FIRESTORE'A KAYDET (debounced) ── */
   const scheduleSave = (patch) => {
     if (!user || isLoadingFromFirestore.current) return;
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => {
       if (isLoadingFromFirestore.current) return;
-      saveUserData(user.uid, patch).catch((err) =>
-        console.error("Kayıt hatası:", err)
-      );
+      saveUserData(user.uid, patch).catch((err) => console.error("Kayıt hatası:", err));
     }, 1500);
   };
 
@@ -181,13 +157,11 @@ function App() {
   useEffect(() => { if (!user || dataLoading) return; scheduleSave({ weekHistory, currentWeek, streak }); }, [weekHistory, currentWeek, streak]);
   useEffect(() => { if (!user || dataLoading) return; scheduleSave({ dailyFocusMinutes, lastFocusDate }); }, [dailyFocusMinutes, lastFocusDate]);
 
-  /* ── SIGN OUT ── */
   const handleSignOut = async () => {
     clearInterval(timerRef.current);
     await signOut(auth);
   };
 
-  /* ── ALARM ── */
   const playAlarm = () => {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -203,37 +177,28 @@ function App() {
         osc.start(ctx.currentTime + start);
         osc.stop(ctx.currentTime + start + dur);
       };
-      beep(880, 0, 0.3);
-      beep(1100, 0.35, 0.3);
-      beep(880, 0.7, 0.3);
-      beep(1100, 1.05, 0.5);
+      beep(880, 0, 0.3); beep(1100, 0.35, 0.3);
+      beep(880, 0.7, 0.3); beep(1100, 1.05, 0.5);
     } catch (e) {}
   };
 
-  /* ── TIMER ── */
   useEffect(() => {
     if (isRunning) {
       timerStartedAt.current = Date.now();
       timerStartValue.current = focusTime;
-
       timerRef.current = setInterval(() => {
         const elapsed = Math.floor((Date.now() - timerStartedAt.current) / 1000);
         const remaining = timerStartValue.current - elapsed;
-
         if (remaining <= 0) {
           clearInterval(timerRef.current);
           setFocusTime(0);
           setIsRunning(false);
           setSessions((p) => p + 1);
           setFocusHours((p) => Number((p + 0.42).toFixed(2)));
-          // Günlük takip — her tamamlanan pomodoro ~25 dk (ya da mevcut currentTotal)
           const today = new Date().toISOString().split("T")[0];
           setLastFocusDate((prev) => {
-            if (prev !== today) {
-              setDailyFocusMinutes(Math.round(POMODORO_TIME / 60));
-            } else {
-              setDailyFocusMinutes((m) => m + Math.round(POMODORO_TIME / 60));
-            }
+            if (prev !== today) setDailyFocusMinutes(Math.round(POMODORO_TIME / 60));
+            else setDailyFocusMinutes((m) => m + Math.round(POMODORO_TIME / 60));
             return today;
           });
           playAlarm();
@@ -245,67 +210,40 @@ function App() {
     return () => clearInterval(timerRef.current);
   }, [isRunning]);
 
-  /* ── PROPS ── */
   const focusProps = {
-    POMODORO_TIME,
-    BREAK_TIME,
-    LONG_BREAK_TIME,
-    focusTime,
-    setFocusTime,
-    isRunning,
-    setIsRunning,
-    timerMode,
-    setTimerMode,
-    currentTotal,
-    setCurrentTotal,
-    sessions,
-    setSessions,
-    focusHours,
-    setFocusHours,
-    goalMinutes,
-    setGoalMinutes,
-    sessionsList,
-    setSessionsList,
-    timerRef,
-    playAlarm,
-    dailyFocusMinutes,
-    setDailyFocusMinutes,
-    lastFocusDate,
-    setLastFocusDate,
+    POMODORO_TIME, BREAK_TIME, LONG_BREAK_TIME,
+    focusTime, setFocusTime, isRunning, setIsRunning,
+    timerMode, setTimerMode, currentTotal, setCurrentTotal,
+    sessions, setSessions, focusHours, setFocusHours,
+    goalMinutes, setGoalMinutes, sessionsList, setSessionsList,
+    timerRef, playAlarm, dailyFocusMinutes, setDailyFocusMinutes,
+    lastFocusDate, setLastFocusDate,
   };
 
   const settingsProps = {
-    userName,
-    setUserName,
-    userEmail,
-    setUserEmail,
-    themeColor,
-    setThemeColor,
-    notifExams,
-    setNotifExams,
-    notifTasks,
-    setNotifTasks,
-    notifFocus,
-    setNotifFocus,
+    userName, setUserName, userEmail, setUserEmail,
+    themeColor, setThemeColor,
+    notifExams, setNotifExams, notifTasks, setNotifTasks, notifFocus, setNotifFocus,
     onSignOut: handleSignOut,
   };
 
-  /* ── LOADING SCREEN ── */
+  /* ── LOADING ── */
   if (authLoading || dataLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <div className="absolute inset-0 bg-blue-400 blur-2xl opacity-30 rounded-full" />
-            <img src="/icon.png" alt="logo" className="relative w-16 h-16 rounded-3xl shadow-2xl" />
-          </div>
-          <p className="text-slate-500 text-sm font-medium">
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: darkMode ? "#1A110A" : "#FDE8D8" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+          <img src="/icon.png" alt="logo" style={{ width: 64, height: 64, borderRadius: 24 }} />
+          <p style={{ color: "#9C7A5A", fontSize: 14, fontFamily: "Inter, sans-serif" }}>
             {authLoading ? "Checking session..." : "Loading your data..."}
           </p>
-          <div className="flex gap-1.5">
+          <div style={{ display: "flex", gap: 6 }}>
             {[0, 1, 2].map((i) => (
-              <div key={i} className="w-2 h-2 rounded-full bg-blue-500 animate-bounce"
-                style={{ animationDelay: `${i * 0.15}s` }} />
+              <div key={i} style={{
+                width: 8, height: 8, borderRadius: "50%",
+                background: "#C85A1A",
+                animation: "bounce 0.6s infinite alternate",
+                animationDelay: `${i * 0.15}s`,
+              }} />
             ))}
           </div>
         </div>
@@ -313,14 +251,14 @@ function App() {
     );
   }
 
-  /* ── AUTH SCREENS ── */
+  /* ── AUTH ── */
   if (!user) {
     if (authScreen === "register")
       return <Register onSwitchToLogin={() => setAuthScreen("login")} />;
     return <Login onSwitchToRegister={() => setAuthScreen("register")} />;
   }
 
-  /* ── MAIN APP ── */
+  /* ── PAGES ── */
   const renderPage = () => {
     if (page === "dashboard") return (
       <Dashboard tasks={tasks} setTasks={setTasks} exams={exams} courses={courses}
@@ -331,54 +269,64 @@ function App() {
       <Tasks tasks={tasks} setTasks={setTasks} taskFilter={taskFilter}
         setTaskFilter={setTaskFilter} darkMode={darkMode} />
     );
-    if (page === "courses") return (
-      <Courses courses={courses} setCourses={setCourses} darkMode={darkMode} />
-    );
-    if (page === "exams") return (
-      <Exams exams={exams} setExams={setExams} darkMode={darkMode} />
-    );
-    if (page === "focus") return (
-      <Focus darkMode={darkMode} setDarkMode={setDarkMode} focusProps={focusProps} />
-    );
+    if (page === "courses") return <Courses courses={courses} setCourses={setCourses} darkMode={darkMode} />;
+    if (page === "exams")   return <Exams exams={exams} setExams={setExams} darkMode={darkMode} />;
+    if (page === "focus")   return <Focus darkMode={darkMode} setDarkMode={setDarkMode} focusProps={focusProps} />;
     if (page === "analytics") return (
-      <Analytics
-        tasks={tasks}
-        courses={courses}
-        exams={exams}
-        focusHours={focusHours}
-        sessions={sessions}
-        darkMode={darkMode}
-        currentWeek={currentWeek}
-        weekHistory={weekHistory}
-        streak={streak}
-      />
+      <Analytics tasks={tasks} courses={courses} exams={exams} focusHours={focusHours}
+        sessions={sessions} darkMode={darkMode} currentWeek={currentWeek}
+        weekHistory={weekHistory} streak={streak} />
     );
-    if (page === "settings") return (
-      <Settings darkMode={darkMode} setDarkMode={setDarkMode} settingsProps={settingsProps} />
-    );
+    if (page === "settings") return <Settings darkMode={darkMode} setDarkMode={setDarkMode} settingsProps={settingsProps} />;
   };
 
+  /* ── MAIN APP ── */
   return (
-    <div className={`min-h-screen transition-all duration-500 ${
-      darkMode
-        ? "bg-gradient-to-br from-[#0f172a] via-[#081028] to-[#020617]"
-        : "bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100"
-    }`}>
+    <div style={{ minHeight: "100vh", background: darkMode ? "#1A110A" : "#FDE8D8", transition: "background 0.3s" }}>
+
+      {/* Hamburger butonu — sidebar kapalıyken görünür */}
       <button
         onClick={() => setSidebarOpen(true)}
-        className={`fixed top-5 left-5 z-50 w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg transition-all hover:scale-105 ${
-          darkMode
-            ? "bg-white/10 text-white border border-white/10"
-            : "bg-white text-slate-700 border border-slate-200"
-        } ${sidebarOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+        style={{
+          position: "fixed", top: 20, left: 20, zIndex: 50,
+          width: 44, height: 44, borderRadius: 14,
+          display: sidebarOpen ? "none" : "flex",
+          alignItems: "center", justifyContent: "center",
+          background: darkMode ? "#2A1A0F" : "#FFFFFF",
+          border: `1px solid ${darkMode ? "#3D2410" : "#EDD9C8"}`,
+          color: darkMode ? "#F5E6D5" : "#2C1A0E",
+          cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.10)",
+        }}
       >
         <FiMenu size={20} />
       </button>
 
-      <Sidebar page={page} setPage={setPage} isOpen={sidebarOpen}
-        setIsOpen={setSidebarOpen} darkMode={darkMode} tasks={tasks} />
+      <Sidebar
+        page={page}
+        setPage={setPage}
+        isOpen={sidebarOpen}
+        setIsOpen={setSidebarOpen}
+        darkMode={darkMode}
+        tasks={tasks}
+      />
 
-      <main className="min-h-screen p-8 pt-20">{renderPage()}</main>
+      {/*
+        Ana içerik alanı.
+        Dashboard kendi padding'ini kendisi yönetiyor (hamburger için sol boşluk dahil).
+        Diğer sayfalar da kendi içlerinde paddingLeft: 80px kullanmalı — 
+        şimdilik burada paddingLeft: 80px ekleyerek tüm sayfalarda hamburger çakışması önleniyor.
+        Eğer Focus gibi sayfalar kendi layout'unu tam kullanmak istiyorsa,
+        o sayfaya özel override edilebilir.
+      */}
+      <main style={{
+        minHeight: "100vh",
+        width: "100%",
+        boxSizing: "border-box",
+        // Dashboard kendi paddingLeft'ini kendisi veriyor, diğerleri için burada veriyoruz:
+        paddingLeft: page === "dashboard" ? 0 : 80,
+      }}>
+        {renderPage()}
+      </main>
     </div>
   );
 }
