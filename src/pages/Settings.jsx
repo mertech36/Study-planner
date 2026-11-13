@@ -15,11 +15,11 @@ import {
 } from "react-icons/fi";
 
 const THEME_COLORS = [
-  { id: "blue", bg: "bg-blue-500", ring: "ring-blue-400", from: "from-blue-500", to: "to-indigo-600" },
-  { id: "purple", bg: "bg-purple-500", ring: "ring-purple-400", from: "from-purple-500", to: "to-fuchsia-600" },
-  { id: "emerald", bg: "bg-emerald-500", ring: "ring-emerald-400", from: "from-emerald-500", to: "to-teal-600" },
-  { id: "orange", bg: "bg-orange-500", ring: "ring-orange-400", from: "from-orange-500", to: "to-red-500" },
-  { id: "pink", bg: "bg-pink-500", ring: "ring-pink-400", from: "from-pink-500", to: "to-rose-500" }
+  { id: "orange", bg: "bg-orange-600", ring: "ring-orange-400", from: "from-orange-500", to: "to-amber-600" },
+  { id: "amber", bg: "bg-amber-500", ring: "ring-amber-400", from: "from-amber-500", to: "to-orange-600" },
+  { id: "terracotta", bg: "bg-[#B9572A]", ring: "ring-orange-400", from: "from-[#C85A1A]", to: "to-[#A8431D]" },
+  { id: "rose", bg: "bg-rose-500", ring: "ring-rose-400", from: "from-rose-500", to: "to-orange-500" },
+  { id: "sage", bg: "bg-emerald-600", ring: "ring-emerald-400", from: "from-emerald-600", to: "to-teal-600" }
 ];
 
 function Toggle({ value, onChange, darkMode }) {
@@ -29,7 +29,7 @@ function Toggle({ value, onChange, darkMode }) {
       onClick={() => onChange(!value)}
       aria-pressed={value}
       className={`relative w-14 h-7 rounded-full transition-colors duration-300 flex-shrink-0 ${
-        value ? "bg-blue-500" : darkMode ? "bg-white/15" : "bg-slate-200"
+        value ? "bg-orange-600" : darkMode ? "bg-white/15" : "bg-slate-200"
       }`}
     >
       <div
@@ -68,15 +68,15 @@ function Settings({ darkMode, setDarkMode, settingsProps }) {
   const [deleting, setDeleting] = useState(false);
 
   const card = darkMode
-    ? "bg-white/5 border border-white/10"
-    : "bg-white border border-slate-100 shadow-sm";
+    ? "bg-[#2A1A0F] border border-white/10"
+    : "bg-white border border-[#F1D8C5] shadow-sm";
 
   const textMain = darkMode ? "text-white" : "text-slate-900";
   const textSub = darkMode ? "text-slate-400" : "text-slate-500";
 
   const inputBg = darkMode
     ? "bg-white/5 border-white/10"
-    : "bg-slate-50 border-slate-200";
+    : "bg-[#FFF7F0] border-[#F1D8C5]";
 
   const activeTheme =
     THEME_COLORS.find((c) => c.id === themeColor) || THEME_COLORS[0];
@@ -144,7 +144,7 @@ function Settings({ darkMode, setDarkMode, settingsProps }) {
 
   const modalClass = `w-full max-w-sm p-8 rounded-[28px] shadow-2xl border ${
     darkMode
-      ? "bg-[#1a1f35] border-white/10 text-white"
+      ? "bg-[#2A1A0F] border-white/10 text-white"
       : "bg-white border-slate-100 text-slate-900"
   }`;
 
@@ -156,6 +156,18 @@ function Settings({ darkMode, setDarkMode, settingsProps }) {
 
   return (
     <>
+      <style>{`
+        .settings-grid {
+          transform: translateX(-60px);
+          width: calc(100% + 60px);
+        }
+        @media (max-width: 900px) {
+          .settings-grid {
+            transform: none;
+            width: 100%;
+          }
+        }
+      `}</style>
       <div className="space-y-8 max-w-5xl mx-auto">
         <div>
           <h1 className={`text-4xl font-black ${textMain}`}>Settings</h1>
@@ -164,7 +176,7 @@ function Settings({ darkMode, setDarkMode, settingsProps }) {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="settings-grid grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="space-y-5">
             <div className={`${card} rounded-[28px] p-6`}>
               <h2 className={`text-base font-black mb-5 ${textMain}`}>
@@ -212,7 +224,7 @@ function Settings({ darkMode, setDarkMode, settingsProps }) {
                         <button
                           type="button"
                           onClick={() => setEditing(!editing)}
-                          className="text-blue-500 flex-shrink-0"
+                          className="text-orange-600 flex-shrink-0"
                         >
                           {editing ? (
                             <FiCheck size={16} />
@@ -233,7 +245,7 @@ function Settings({ darkMode, setDarkMode, settingsProps }) {
                 className={`mt-5 w-full py-3 rounded-2xl font-bold text-sm transition-all hover:scale-[1.02] flex items-center justify-center gap-2 ${
                   saved
                     ? "bg-green-500 text-white"
-                    : "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg"
+                    : "bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-lg"
                 }`}
               >
                 {saved ? (
@@ -343,7 +355,7 @@ function Settings({ darkMode, setDarkMode, settingsProps }) {
                       themeColor === c.id
                         ? `ring-4 ring-offset-2 ${c.ring} scale-110 ${
                             darkMode
-                              ? "ring-offset-[#0f172a]"
+                              ? "ring-offset-[#1A110A]"
                               : "ring-offset-white"
                           }`
                         : "opacity-50 hover:opacity-80 hover:scale-105"

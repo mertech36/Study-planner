@@ -411,6 +411,31 @@ const css = `
   .tk-modal { padding: 22px 18px; }
 }
 @media (prefers-reduced-motion: reduce) { .tk, .tk-item, .tk-chip { transition: none; } }
+
+/* Son sayfa hizalamalari */
+.tk-inner { padding: 24px 32px 40px 15px; }
+.tk-inner > .card,
+.tk-inner > .tk-list {
+  transform: translateX(-60px);
+  width: calc(100% + 60px);
+}
+.tk-toolbar {
+  margin-top: -2px;
+  transform: translateX(-60px);
+  width: calc(100% + 60px);
+}
+@media (max-width: 900px) {
+  .tk-inner { padding: 20px 20px 32px 76px; }
+  .tk-inner > .card,
+  .tk-inner > .tk-list,
+  .tk-toolbar {
+    transform: none;
+    width: 100%;
+  }
+}
+@media (max-width: 520px) {
+  .tk-inner { padding: 16px 12px 28px 64px; }
+}
 `;
 
 export default Tasks;

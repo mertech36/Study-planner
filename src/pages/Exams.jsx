@@ -301,6 +301,30 @@ const css = `
   .ex-form { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { .ex, .ex-chip { transition: none; } }
+
+/* Son sayfa hizalamalari */
+.ex-inner { padding: 24px 32px 40px 15px; }
+.ex-inner > .card,
+.ex-inner > .ex-grid {
+  transform: translateX(-60px);
+  width: calc(100% + 60px);
+}
+.ex-chips {
+  transform: translateX(-60px);
+  width: calc(100% + 60px);
+}
+@media (max-width: 900px) {
+  .ex-inner { padding: 20px 20px 32px 76px; }
+  .ex-inner > .card,
+  .ex-inner > .ex-grid,
+  .ex-chips {
+    transform: none;
+    width: 100%;
+  }
+}
+@media (max-width: 520px) {
+  .ex-inner { padding: 16px 12px 28px 64px; }
+}
 `;
 
 export default Exams;

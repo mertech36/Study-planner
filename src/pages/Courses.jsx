@@ -247,6 +247,25 @@ const css = `
   .cr, .cr-card, .swatch, .cr-del { transition: none; }
   .cr-card:hover { transform: none; }
 }
+
+/* Son sayfa hizalamalari */
+.cr-inner { padding: 24px 32px 40px 15px; }
+.cr-inner > .card,
+.cr-inner > .cr-grid {
+  transform: translateX(-60px);
+  width: calc(100% + 60px);
+}
+@media (max-width: 900px) {
+  .cr-inner { padding: 20px 20px 32px 76px; }
+  .cr-inner > .card,
+  .cr-inner > .cr-grid {
+    transform: none;
+    width: 100%;
+  }
+}
+@media (max-width: 520px) {
+  .cr-inner { padding: 16px 12px 28px 64px; gap: 18px; }
+}
 `;
 
 export default Courses;

@@ -266,7 +266,27 @@ function Analytics({
 
   return (
     <div style={{ background: theme.pageBg, minHeight: "100vh", width: "100%", boxSizing: "border-box", transition: "background 0.3s" }}>
-      <div style={{ width: "100%", boxSizing: "border-box", padding: "28px 40px 40px 80px", display: "flex", flexDirection: "column", gap: 24 }}>
+      <style>{`
+        .analytics-content {
+          transform: translateX(-60px);
+          width: calc(100% + 60px);
+        }
+        @media (max-width: 900px) {
+          .analytics-inner {
+            padding: 20px 20px 32px 76px !important;
+          }
+          .analytics-content {
+            transform: none;
+            width: 100%;
+          }
+        }
+        @media (max-width: 520px) {
+          .analytics-inner {
+            padding: 16px 12px 28px 64px !important;
+          }
+        }
+      `}</style>
+      <div className="analytics-inner" style={{ width: "100%", boxSizing: "border-box", padding: "24px 32px 40px 15px", display: "flex", flexDirection: "column", gap: 24 }}>
 
         {/* HEADER */}
         <div>
@@ -275,7 +295,7 @@ function Analytics({
         </div>
 
         {/* TOP STATS */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
+        <div className="analytics-content" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
           {topStats.map(({ label, value, sub, Icon }) => (
             <div key={label} style={card}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
@@ -291,7 +311,7 @@ function Analytics({
         </div>
 
         {/* PRODUCTIVITY METER */}
-        <div style={card}>
+        <div className="analytics-content" style={card}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
             <SectionHeader Icon={FiTrendingUp} title="Overall Productivity" subtitle="Based on completed tasks" theme={theme} />
             <span style={{ fontSize: 32, fontWeight: 900, color: prodColor, fontFamily: FONT }}>{stats.productivity}%</span>
@@ -317,7 +337,7 @@ function Analytics({
         </div>
 
         {/* WEEKLY HISTORY */}
-        <div style={card}>
+        <div className="analytics-content" style={card}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
             <SectionHeader Icon={FiCalendar} title="Weekly History" subtitle="Past study weeks" theme={theme} />
             {weekHistory.length > VISIBLE_WEEKS && (
@@ -346,7 +366,7 @@ function Analytics({
         </div>
 
         {/* CHARTS */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 20 }}>
+        <div className="analytics-content" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 20 }}>
           <div style={card}>
             <SectionHeader Icon={FiCalendar} title="Tasks by Day" subtitle="Completed tasks per weekday" theme={theme} marginBottom={24} />
             <BarChart data={weeklyData} theme={theme} />
